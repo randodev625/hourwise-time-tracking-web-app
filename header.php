@@ -74,6 +74,9 @@ $is_account_active = in_array($current_page, ['account.php'], true);
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                             <li><a class="dropdown-item <?= $is_account_active ? 'active' : '' ?>" href="/account.php">Manage Account</a></li>
+                            <?php if (is_admin_user()): ?>
+                                <li><a class="dropdown-item <?= $current_page === 'admin_mail.php' ? 'active' : '' ?>" href="/admin_mail.php">Mail Settings</a></li>
+                            <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/auth/logout.php">Logout</a></li>
                         </ul>

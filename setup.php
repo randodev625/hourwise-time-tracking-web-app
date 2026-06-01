@@ -134,17 +134,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($dbHost === '' || $dbName === '' || $dbUser === '') {
                 $errors[] = 'DB host, DB name, and DB user are required.';
             }
-            if ($smtpHost === '' || $smtpUser === '' || $smtpPort === '' || $fromEmail === '') {
-                $errors[] = 'SMTP host, user, port, and from email are required.';
-            }
             if ($baseUrl === '' || !preg_match('#^https?://#i', $baseUrl)) {
                 $errors[] = 'Base URL is required and must start with http:// or https://';
             }
             if (!in_array($appTimezone, DateTimeZone::listIdentifiers(), true)) {
                 $errors[] = 'App timezone must be a valid timezone identifier.';
             }
-            if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'From email address is invalid.';
+
+            $smtpProvided = $smtpHost !== '' || $smtpUser !== '' || $smtpPass !== '' || $fromEmail !== '';
+            if ($smtpProvided) {
+                if ($smtpHost === '' || $smtpUser === '' || $fromEmail === '') {
+                    $errors[] = 'To enable SMTP now, SMTP host, SMTP user, and from email are required.';
+                }
+                if ($smtpPort !== '' && !ctype_digit($smtpPort)) {
+                    $errors[] = 'SMTP port must be a valid number.';
+                }
+                if ($fromEmail !== '' && !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'From email address is invalid.';
+                }
             }
 
             if (empty($errors)) {
@@ -164,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'CRM_SMTP_HOST' => $smtpHost,
                         'CRM_SMTP_USER' => $smtpUser,
                         'CRM_SMTP_PASS' => $smtpPass,
-                        'CRM_SMTP_PORT' => (int)$smtpPort,
+                        'CRM_SMTP_PORT' => (int)($smtpPort !== '' ? $smtpPort : 465),
                         'CRM_FROM_EMAIL' => $fromEmail,
                         'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'Time Tracker',
                     ]);
@@ -174,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'APP_SESSION_SECURE' => (bool)$sessionSecure,
                     ]);
 
-                    $messages[] = 'Secrets saved. Re-testing DB connection...';
+                    $messages[] = 'Core setup values saved. Re-testing DB connection...';
 
                     $config = require __DIR__ . '/config.php';
                     $pdo = setup_connect($config);
@@ -313,7 +320,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
         <div class="alert alert-danger"><?= h($e) ?></div>
     <?php endforeach; ?>
     <?php if (!$pdo && empty($errors)): ?>
-        <div class="alert alert-secondary">
+        <div class="alert alert-primary">
             Enter your database and mail credentials below, then click <strong>Save and Continue</strong> to continue setup.
         </div>
     <?php endif; ?>
@@ -347,13 +354,16 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
             </div>
 
             <div class="col-12 mt-2"><h3 class="h6 mb-0">SMTP / Email</h3></div>
+            <div class="col-12">
+                <div class="form-text mb-1">Optional during install. You can leave these blank and configure SMTP later at <code>Mail Settings</code> (admin-only).</div>
+            </div>
             <div class="col-md-4">
                 <label class="form-label" for="smtp_host">SMTP Host</label>
-                <input id="smtp_host" name="smtp_host" class="form-control" required value="<?= h($smtpHost) ?>">
+                <input id="smtp_host" name="smtp_host" class="form-control" value="<?= h($smtpHost) ?>">
             </div>
             <div class="col-md-3">
                 <label class="form-label" for="smtp_user">SMTP User</label>
-                <input id="smtp_user" name="smtp_user" class="form-control" required value="<?= h($smtpUser) ?>">
+                <input id="smtp_user" name="smtp_user" class="form-control" value="<?= h($smtpUser) ?>">
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="smtp_pass">SMTP Pass</label>
@@ -361,7 +371,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
             </div>
             <div class="col-md-1">
                 <label class="form-label" for="smtp_port">Port</label>
-                <input id="smtp_port" name="smtp_port" type="number" class="form-control" required value="<?= h($smtpPort) ?>">
+                <input id="smtp_port" name="smtp_port" type="number" class="form-control" value="<?= h($smtpPort) ?>">
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="from_name">From Name</label>
@@ -369,7 +379,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="from_email">From Email</label>
-                <input id="from_email" name="from_email" type="email" class="form-control" required value="<?= h($fromEmail) ?>">
+                <input id="from_email" name="from_email" type="email" class="form-control" value="<?= h($fromEmail) ?>">
             </div>
 
             <div class="col-12 mt-2"><h3 class="h6 mb-0">App</h3></div>

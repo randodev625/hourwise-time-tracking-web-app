@@ -258,6 +258,32 @@ function clear_auth_session(): void {
     session_regenerate_id(true);
 }
 
+function is_admin_user(): bool {
+    return (int)($_SESSION['user']['id'] ?? 0) === 1;
+}
+
+function require_admin(): void {
+    require_login();
+    if (!is_admin_user()) {
+        http_response_code(403);
+        exit('Forbidden');
+    }
+}
+
+function write_php_array_file(string $path, array $data): void {
+    $dir = dirname($path);
+    if (!is_dir($dir) && !mkdir($dir, 0700, true)) {
+        throw new RuntimeException('Could not create target directory.');
+    }
+
+    $php = "<?php\nreturn " . var_export($data, true) . ";\n";
+    if (file_put_contents($path, $php, LOCK_EX) === false) {
+        throw new RuntimeException('Could not write file: ' . basename($path));
+    }
+
+    @chmod($path, 0600);
+}
+
 function table_exists(PDO $pdo, string $table): bool {
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) FROM information_schema.TABLES
