@@ -75,6 +75,7 @@ Yes, this app uses external secrets files and does not store sensitive credentia
 `config.php` loads:
 - `../secrets/db_credentials.php`
 - `../secrets/email_secret.php`
+- `../secrets/app_secret.php`
 
 Expected shape:
 
@@ -101,6 +102,16 @@ return [
 ];
 ```
 
+`../secrets/app_secret.php`
+```php
+<?php
+return [
+  'APP_BASE_URL' => 'https://time.example.com',
+  'APP_TIMEZONE' => 'America/New_York',
+  'APP_SESSION_SECURE' => true,
+];
+```
+
 Important:
 - Keep `secrets/` outside web root and out of version control.
 - Ensure filesystem permissions restrict read access.
@@ -112,11 +123,12 @@ Important:
    `php scripts/migrate.php`
 3. Create `../secrets/db_credentials.php`.
 4. Create `../secrets/email_secret.php`.
-5. Confirm local PHPMailer path exists at `lib/PHPMailer`.
-6. Configure `config.php` app values (`base_url`, `session_secure`, default timezone).
+5. Create `../secrets/app_secret.php`.
+6. Confirm local PHPMailer path exists at `lib/PHPMailer`.
 
 ### Optional Browser-Based Installer
 - On a fresh install, the app automatically redirects to `/setup.php`.
+- Enter DB, SMTP, and app URL/timezone credentials to generate secret files.
 - Run migrations, then create the first admin account.
 - After the first user exists, setup auto-locks and normal app routes resume.
 - Optional: set `config.php` -> `setup.enabled` to `true` only when you intentionally need setup access again.

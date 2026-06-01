@@ -18,6 +18,7 @@ secrets/
 **/secrets/
 db_credentials.php
 email_secret.php
+app_secret.php
 
 # Runtime uploads (keep directory, ignore files)
 uploads/avatars/*

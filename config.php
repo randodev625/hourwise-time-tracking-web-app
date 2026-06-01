@@ -3,32 +3,37 @@
 // ini_set('display_startup_errors', 1);
 // error_reporting(E_ALL);
 
-$dbCredentials = require __DIR__ . '/../secrets/db_credentials.php';
-$emailSecret = require __DIR__ . '/../secrets/email_secret.php';
+$dbCredentialsPath = __DIR__ . '/../secrets/db_credentials.php';
+$emailSecretPath = __DIR__ . '/../secrets/email_secret.php';
+$appSecretPath = __DIR__ . '/../secrets/app_secret.php';
+
+$dbCredentials = is_file($dbCredentialsPath) ? require $dbCredentialsPath : [];
+$emailSecret = is_file($emailSecretPath) ? require $emailSecretPath : [];
+$appSecret = is_file($appSecretPath) ? require $appSecretPath : [];
 
 return [
     'db' => [
-        'dsn' => $dbCredentials['dsn'],
-        'user' => $dbCredentials['user'],
-        'pass' => $dbCredentials['pass'],
+        'dsn' => (string)($dbCredentials['dsn'] ?? ''),
+        'user' => (string)($dbCredentials['user'] ?? ''),
+        'pass' => (string)($dbCredentials['pass'] ?? ''),
     ],
     'app' => [
-        'base_url' => 'https://your-url.com', // no trailing slash
-        'timezone' => 'America/New_York',
+        'base_url' => (string)($appSecret['APP_BASE_URL'] ?? ''),
+        'timezone' => (string)($appSecret['APP_TIMEZONE'] ?? 'America/New_York'),
         'session_name' => 'tt_sess',
-        'session_secure' => true, // true if HTTPS only
+        'session_secure' => (bool)($appSecret['APP_SESSION_SECURE'] ?? true), // true if HTTPS only
         'session_lifetime' => 60 * 60 * 24 * 7, // 7 days
     ],
     'mail' => [
         'phpmailer_path' => __DIR__ . '/lib/PHPMailer',
 
-        'host' => $emailSecret['CRM_SMTP_HOST'],
-        'username' => $emailSecret['CRM_SMTP_USER'],
-        'password' => $emailSecret['CRM_SMTP_PASS'],
-        'port' => (int)$emailSecret['CRM_SMTP_PORT'],
-        'encryption' => ((int)$emailSecret['CRM_SMTP_PORT'] === 465) ? 'ssl' : 'tls',
+        'host' => (string)($emailSecret['CRM_SMTP_HOST'] ?? ''),
+        'username' => (string)($emailSecret['CRM_SMTP_USER'] ?? ''),
+        'password' => (string)($emailSecret['CRM_SMTP_PASS'] ?? ''),
+        'port' => (int)($emailSecret['CRM_SMTP_PORT'] ?? 465),
+        'encryption' => ((int)($emailSecret['CRM_SMTP_PORT'] ?? 465) === 465) ? 'ssl' : 'tls',
 
-        'from_email' => $emailSecret['CRM_FROM_EMAIL'],
+        'from_email' => (string)($emailSecret['CRM_FROM_EMAIL'] ?? ''),
         'from_name' => $emailSecret['CRM_FROM_NAME'] ?? 'Time Tracker',
     ],
     'auth' => [

@@ -20,6 +20,20 @@ function setup_connect(array $config): PDO {
     );
 }
 
+function setup_write_php_array_file(string $path, array $data): void {
+    $dir = dirname($path);
+    if (!is_dir($dir) && !mkdir($dir, 0700, true)) {
+        throw new RuntimeException('Could not create secrets directory.');
+    }
+
+    $php = "<?php\nreturn " . var_export($data, true) . ";\n";
+    if (file_put_contents($path, $php, LOCK_EX) === false) {
+        throw new RuntimeException('Could not write secrets file: ' . basename($path));
+    }
+
+    @chmod($path, 0600);
+}
+
 function setup_user_count(PDO $pdo): int {
     if (!table_exists($pdo, 'users')) {
         return 0;
@@ -83,6 +97,18 @@ $errors = [];
 $displayName = trim((string)($_POST['display_name'] ?? ''));
 $email = trim((string)($_POST['email'] ?? ''));
 $timezone = trim((string)($_POST['timezone'] ?? app_default_timezone()));
+$dbDsn = trim((string)($_POST['db_dsn'] ?? ($config['db']['dsn'] ?? '')));
+$dbUser = trim((string)($_POST['db_user'] ?? ($config['db']['user'] ?? '')));
+$dbPass = (string)($_POST['db_pass'] ?? ($config['db']['pass'] ?? ''));
+$smtpHost = trim((string)($_POST['smtp_host'] ?? ($config['mail']['host'] ?? '')));
+$smtpUser = trim((string)($_POST['smtp_user'] ?? ($config['mail']['username'] ?? '')));
+$smtpPass = (string)($_POST['smtp_pass'] ?? ($config['mail']['password'] ?? ''));
+$smtpPort = (string)($_POST['smtp_port'] ?? (string)($config['mail']['port'] ?? 465));
+$fromEmail = trim((string)($_POST['from_email'] ?? ($config['mail']['from_email'] ?? '')));
+$fromName = trim((string)($_POST['from_name'] ?? ($config['mail']['from_name'] ?? 'Time Tracker')));
+$baseUrl = trim((string)($_POST['base_url'] ?? ($config['app']['base_url'] ?? '')));
+$appTimezone = trim((string)($_POST['app_timezone'] ?? ($config['app']['timezone'] ?? 'America/New_York')));
+$sessionSecure = isset($_POST['session_secure']) ? 1 : ((bool)($config['app']['session_secure'] ?? true) ? 1 : 0);
 
 try {
     $pdo = setup_connect($config);
@@ -103,21 +129,81 @@ if (!$setupRequired && !$setupEnabled) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check()) {
         $errors[] = 'Invalid CSRF token.';
-    } elseif (!$pdo) {
-        $errors[] = 'Database connection is not available.';
     } else {
         $action = $_POST['action'] ?? '';
 
-        if ($action === 'run_migrations') {
-            try {
-                [$applied, $skipped] = setup_run_migrations($pdo, __DIR__ . '/migrations');
-                $messages[] = 'Migrations complete. Applied: ' . count($applied) . ', Skipped: ' . count($skipped) . '.';
-                if (!empty($applied)) {
-                    $messages[] = 'Applied: ' . implode(', ', $applied);
+        if ($action === 'save_secrets') {
+            if ($dbDsn === '' || $dbUser === '') {
+                $errors[] = 'DB DSN and DB user are required.';
+            }
+            if ($smtpHost === '' || $smtpUser === '' || $smtpPort === '' || $fromEmail === '') {
+                $errors[] = 'SMTP host, user, port, and from email are required.';
+            }
+            if ($baseUrl === '' || !preg_match('#^https?://#i', $baseUrl)) {
+                $errors[] = 'Base URL is required and must start with http:// or https://';
+            }
+            if (!in_array($appTimezone, DateTimeZone::listIdentifiers(), true)) {
+                $errors[] = 'App timezone must be a valid timezone identifier.';
+            }
+            if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'From email address is invalid.';
+            }
+
+            if (empty($errors)) {
+                try {
+                    $dbSecretsPath = __DIR__ . '/../secrets/db_credentials.php';
+                    $emailSecretsPath = __DIR__ . '/../secrets/email_secret.php';
+                    $appSecretsPath = __DIR__ . '/../secrets/app_secret.php';
+
+                    setup_write_php_array_file($dbSecretsPath, [
+                        'dsn' => $dbDsn,
+                        'user' => $dbUser,
+                        'pass' => $dbPass,
+                    ]);
+
+                    setup_write_php_array_file($emailSecretsPath, [
+                        'CRM_SMTP_HOST' => $smtpHost,
+                        'CRM_SMTP_USER' => $smtpUser,
+                        'CRM_SMTP_PASS' => $smtpPass,
+                        'CRM_SMTP_PORT' => (int)$smtpPort,
+                        'CRM_FROM_EMAIL' => $fromEmail,
+                        'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'Time Tracker',
+                    ]);
+                    setup_write_php_array_file($appSecretsPath, [
+                        'APP_BASE_URL' => rtrim($baseUrl, '/'),
+                        'APP_TIMEZONE' => $appTimezone,
+                        'APP_SESSION_SECURE' => (bool)$sessionSecure,
+                    ]);
+
+                    $messages[] = 'Secrets saved. Re-testing DB connection...';
+
+                    $config = require __DIR__ . '/config.php';
+                    $pdo = setup_connect($config);
+                    $setupRequired = app_setup_required($pdo);
+                    $userCount = setup_user_count($pdo);
+                    $messages[] = 'Database connection successful.';
+                } catch (Throwable $e) {
+                    $errors[] = 'Could not save secrets: ' . $e->getMessage();
                 }
-                $userCount = setup_user_count($pdo);
-            } catch (Throwable $e) {
-                $errors[] = 'Migration failed: ' . $e->getMessage();
+            }
+        }
+
+        if ($action !== 'save_secrets' && !$pdo) {
+            $errors[] = 'Database connection is not available. Save secrets first.';
+        }
+
+        if ($action === 'run_migrations') {
+            if ($pdo) {
+                try {
+                    [$applied, $skipped] = setup_run_migrations($pdo, __DIR__ . '/migrations');
+                    $messages[] = 'Migrations complete. Applied: ' . count($applied) . ', Skipped: ' . count($skipped) . '.';
+                    if (!empty($applied)) {
+                        $messages[] = 'Applied: ' . implode(', ', $applied);
+                    }
+                    $userCount = setup_user_count($pdo);
+                } catch (Throwable $e) {
+                    $errors[] = 'Migration failed: ' . $e->getMessage();
+                }
             }
         }
 
@@ -214,12 +300,85 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <?php endforeach; ?>
 
     <div class="card p-4 mb-4">
+        <h2 class="h5">Step 0: Save Hosting and Mail Credentials</h2>
+        <p class="text-muted mb-3">Writes <code>../secrets/db_credentials.php</code>, <code>../secrets/email_secret.php</code>, and <code>../secrets/app_secret.php</code>.</p>
+        <form method="post" class="row g-3">
+            <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+            <input type="hidden" name="action" value="save_secrets">
+
+            <div class="col-12"><h3 class="h6 mb-0">Database</h3></div>
+            <div class="col-md-7">
+                <label class="form-label" for="db_dsn">DB DSN</label>
+                <input id="db_dsn" name="db_dsn" class="form-control" required value="<?= h($dbDsn) ?>" placeholder="mysql:host=localhost;dbname=app;charset=utf8mb4">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="db_user">DB User</label>
+                <input id="db_user" name="db_user" class="form-control" required value="<?= h($dbUser) ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="db_pass">DB Pass</label>
+                <input id="db_pass" name="db_pass" type="password" class="form-control" value="<?= h($dbPass) ?>">
+            </div>
+
+            <div class="col-12 mt-2"><h3 class="h6 mb-0">SMTP / Email</h3></div>
+            <div class="col-md-4">
+                <label class="form-label" for="smtp_host">SMTP Host</label>
+                <input id="smtp_host" name="smtp_host" class="form-control" required value="<?= h($smtpHost) ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="smtp_user">SMTP User</label>
+                <input id="smtp_user" name="smtp_user" class="form-control" required value="<?= h($smtpUser) ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="smtp_pass">SMTP Pass</label>
+                <input id="smtp_pass" name="smtp_pass" type="password" class="form-control" value="<?= h($smtpPass) ?>">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label" for="smtp_port">Port</label>
+                <input id="smtp_port" name="smtp_port" type="number" class="form-control" required value="<?= h($smtpPort) ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="from_name">From Name</label>
+                <input id="from_name" name="from_name" class="form-control" value="<?= h($fromName) ?>">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="from_email">From Email</label>
+                <input id="from_email" name="from_email" type="email" class="form-control" required value="<?= h($fromEmail) ?>">
+            </div>
+
+            <div class="col-12 mt-2"><h3 class="h6 mb-0">App</h3></div>
+            <div class="col-md-6">
+                <label class="form-label" for="base_url">Base URL</label>
+                <input id="base_url" name="base_url" class="form-control" required value="<?= h($baseUrl) ?>" placeholder="https://time.example.com">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="app_timezone">Default Timezone</label>
+                <select id="app_timezone" name="app_timezone" class="form-select" required>
+                    <?php foreach (DateTimeZone::listIdentifiers() as $tz): ?>
+                        <option value="<?= h($tz) ?>" <?= $appTimezone === $tz ? 'selected' : '' ?>><?= h($tz) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="session_secure" name="session_secure" value="1" <?= $sessionSecure ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="session_secure">HTTPS Cookies</label>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-dark">Save Credentials</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card p-4 mb-4">
         <h2 class="h5">Step 1: Run Migrations</h2>
         <p class="text-muted mb-3">Creates required tables from <code>/migrations</code> and tracks applied files.</p>
         <form method="post">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="run_migrations">
-            <button type="submit" class="btn btn-primary">Run Migrations</button>
+            <button type="submit" class="btn btn-primary" <?= !$pdo ? 'disabled' : '' ?>>Run Migrations</button>
         </form>
     </div>
 

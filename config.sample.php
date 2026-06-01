@@ -1,26 +1,25 @@
 <?php
 return [
     'db' => [
-        'dsn' => 'mysql:host=localhost;dbname=YOUR_DB;charset=utf8mb4',
-        'user' => 'YOUR_DB_USER',
-        'pass' => 'YOUR_DB_PASS',
+        'dsn' => '', // loaded from ../secrets/db_credentials.php
+        'user' => '',
+        'pass' => '',
     ],
     'app' => [
-        'base_url' => 'https://example.com', // no trailing slash
-        'timezone' => 'America/New_York',
+        'base_url' => '', // loaded from ../secrets/app_secret.php
+        'timezone' => 'America/New_York', // loaded from app secret with fallback
         'session_name' => 'tt_sess',
-        'session_secure' => true,
+        'session_secure' => true, // loaded from app secret with fallback
         'session_lifetime' => 60 * 60 * 24 * 7,
     ],
     'mail' => [
         'phpmailer_path' => __DIR__ . '/../lib/PHPMailer',
-        'secret_include' => '/domains/example.com/secrets/email_secret.php',
-        'host' => 'smtp.hostinger.com',
-        'username' => 'you@example.com',
-        'password' => 'SMTP_PASSWORD',
+        'host' => '', // loaded from ../secrets/email_secret.php
+        'username' => '',
+        'password' => '',
         'port' => 465,
         'encryption' => 'ssl',
-        'from_email' => 'you@example.com',
+        'from_email' => '',
         'from_name' => 'Time Tracker',
     ],
     'auth' => [
