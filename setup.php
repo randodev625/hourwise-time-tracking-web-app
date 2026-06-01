@@ -321,7 +321,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
     <?php endforeach; ?>
     <?php if (!$pdo && empty($errors)): ?>
         <div class="alert alert-primary">
-            Enter your database and mail credentials below, then click <strong>Save and Continue</strong> to continue setup.
+            Enter your required setup values below, then click <strong>Save and Continue</strong> to continue setup.
         </div>
     <?php endif; ?>
 
@@ -335,54 +335,25 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="save_secrets">
 
-            <div class="col-12"><h3 class="h6 mb-0">Database</h3></div>
-            <div class="col-md-4">
+            <div class="col-12"><h3 class="h6 mb-1">Database</h3></div>
+            <div class="col-md-6">
                 <label class="form-label" for="db_host">DB Host</label>
                 <input id="db_host" name="db_host" class="form-control" required value="<?= h($dbHost) ?>" placeholder="localhost">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label" for="db_name">DB Name</label>
                 <input id="db_name" name="db_name" class="form-control" required value="<?= h($dbName) ?>" placeholder="time_tracker">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-6">
                 <label class="form-label" for="db_user">DB User</label>
                 <input id="db_user" name="db_user" class="form-control" required value="<?= h($dbUser) ?>">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-6">
                 <label class="form-label" for="db_pass">DB Pass</label>
                 <input id="db_pass" name="db_pass" type="password" class="form-control" value="">
             </div>
 
-            <div class="col-12 mt-2"><h3 class="h6 mb-0">SMTP / Email</h3></div>
-            <div class="col-12">
-                <div class="form-text mb-1">Optional during install. You can leave these blank and configure SMTP later at <code>Mail Settings</code> (admin-only).</div>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" for="smtp_host">SMTP Host</label>
-                <input id="smtp_host" name="smtp_host" class="form-control" value="<?= h($smtpHost) ?>">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" for="smtp_user">SMTP User</label>
-                <input id="smtp_user" name="smtp_user" class="form-control" value="<?= h($smtpUser) ?>">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label" for="smtp_pass">SMTP Pass</label>
-                <input id="smtp_pass" name="smtp_pass" type="password" class="form-control" value="">
-            </div>
-            <div class="col-md-1">
-                <label class="form-label" for="smtp_port">Port</label>
-                <input id="smtp_port" name="smtp_port" type="number" class="form-control" value="<?= h($smtpPort) ?>">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label" for="from_name">From Name</label>
-                <input id="from_name" name="from_name" class="form-control" value="<?= h($fromName) ?>">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" for="from_email">From Email</label>
-                <input id="from_email" name="from_email" type="email" class="form-control" value="<?= h($fromEmail) ?>">
-            </div>
-
-            <div class="col-12 mt-2"><h3 class="h6 mb-0">App</h3></div>
+            <div class="col-12 mt-5"><h3 class="h6 mb-1">App</h3></div>
             <div class="col-md-6">
                 <label class="form-label" for="base_url">Base URL</label>
                 <input id="base_url" name="base_url" class="form-control" required value="<?= h($baseUrl) ?>" placeholder="https://time.example.com">
@@ -401,6 +372,35 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
                     <input class="form-check-input" type="checkbox" id="session_secure" name="session_secure" value="1" <?= $sessionSecure ? 'checked' : '' ?>>
                     <label class="form-check-label" for="session_secure">HTTPS Cookies</label>
                 </div>
+            </div>
+
+            <div class="col-12 mt-5"><h3 class="h6 mb-0">SMTP / Email</h3></div>
+            <div class="col-12 mt-0">
+                <div class="form-text mb-1">Optional during install. You can leave these blank and configure SMTP later at <code>Mail Settings</code> (admin-only).</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="smtp_host">SMTP Host</label>
+                <input id="smtp_host" name="smtp_host" class="form-control" value="<?= h($smtpHost) ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="smtp_user">SMTP User</label>
+                <input id="smtp_user" name="smtp_user" class="form-control" value="<?= h($smtpUser) ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="smtp_pass">SMTP Pass</label>
+                <input id="smtp_pass" name="smtp_pass" type="password" class="form-control" value="">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="smtp_port">Port</label>
+                <input id="smtp_port" name="smtp_port" type="number" class="form-control" value="<?= h($smtpPort) ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="from_name">From Name</label>
+                <input id="from_name" name="from_name" class="form-control" value="<?= h($fromName) ?>">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" for="from_email">From Email</label>
+                <input id="from_email" name="from_email" type="email" class="form-control" value="<?= h($fromEmail) ?>">
             </div>
 
             <div class="col-12">
