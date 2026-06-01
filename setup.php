@@ -118,7 +118,6 @@ try {
     $pdo = null;
     $userCount = 0;
     $setupRequired = true;
-    $errors[] = 'Could not connect to the database. Check DB config and database existence.';
 }
 
 if (!$setupRequired && !$setupEnabled) {
@@ -301,6 +300,11 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <?php foreach ($errors as $e): ?>
         <div class="alert alert-danger"><?= h($e) ?></div>
     <?php endforeach; ?>
+    <?php if (!$pdo && empty($errors)): ?>
+        <div class="alert alert-secondary">
+            Enter your database and mail credentials below, then click <strong>Save Credentials</strong> to continue setup.
+        </div>
+    <?php endif; ?>
 
     <div class="card p-4 mb-4">
         <h2 class="h5">Step 0: Save Hosting and Mail Credentials</h2>
