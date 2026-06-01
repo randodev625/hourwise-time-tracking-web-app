@@ -62,23 +62,18 @@
  *
  * ------------------------------------------------------------------------*/
 .setup-page {
-    background-image: linear-gradient(rgba(248, 249, 250, 0.95), rgba(248, 249, 250, 0.95)), url('/assets/img/time-tracker-background-graphic.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    background-image: url('/assets/img/time-tracker-background-graphic.jpg');
+    background-size: contain%;
+    background-position: right bottom;
+    background-repeat: no-repeat;
 }
 
 .setup-brand-hero {
-    border-radius: 1rem;
     padding: 1.5rem 1rem;
-    background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('/assets/img/time-tracker-background-graphic.jpg');
-    background-size: cover;
-    background-position: center;
-    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .setup-brand-logo {
-    max-width: 200px;
+    max-width: 300px;
     width: 100%;
     height: auto;
 }

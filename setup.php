@@ -74,18 +74,9 @@ function setup_run_migrations(PDO $pdo, string $migrationsDir): array {
             continue;
         }
 
-        $pdo->beginTransaction();
-        try {
-            $pdo->exec($sql);
-            $markAppliedStmt->execute([$filename]);
-            $pdo->commit();
-            $applied[] = $filename;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            throw $e;
-        }
+        $pdo->exec($sql);
+        $markAppliedStmt->execute([$filename]);
+        $applied[] = $filename;
     }
 
     return [$applied, $skipped];
@@ -97,7 +88,15 @@ $errors = [];
 $displayName = trim((string)($_POST['display_name'] ?? ''));
 $email = trim((string)($_POST['email'] ?? ''));
 $timezone = trim((string)($_POST['timezone'] ?? app_default_timezone()));
-$dbDsn = trim((string)($_POST['db_dsn'] ?? ($config['db']['dsn'] ?? '')));
+$existingDsn = trim((string)($config['db']['dsn'] ?? ''));
+$dbHostDefault = 'localhost';
+$dbNameDefault = '';
+if ($existingDsn !== '' && preg_match('/host=([^;]+);dbname=([^;]+)/i', $existingDsn, $m)) {
+    $dbHostDefault = trim((string)$m[1]);
+    $dbNameDefault = trim((string)$m[2]);
+}
+$dbHost = trim((string)($_POST['db_host'] ?? $dbHostDefault));
+$dbName = trim((string)($_POST['db_name'] ?? $dbNameDefault));
 $dbUser = trim((string)($_POST['db_user'] ?? ($config['db']['user'] ?? '')));
 $dbPass = (string)($_POST['db_pass'] ?? ($config['db']['pass'] ?? ''));
 $smtpHost = trim((string)($_POST['smtp_host'] ?? ($config['mail']['host'] ?? '')));
@@ -106,7 +105,8 @@ $smtpPass = (string)($_POST['smtp_pass'] ?? ($config['mail']['password'] ?? ''))
 $smtpPort = (string)($_POST['smtp_port'] ?? (string)($config['mail']['port'] ?? 465));
 $fromEmail = trim((string)($_POST['from_email'] ?? ($config['mail']['from_email'] ?? '')));
 $fromName = trim((string)($_POST['from_name'] ?? ($config['mail']['from_name'] ?? 'Time Tracker')));
-$baseUrl = trim((string)($_POST['base_url'] ?? ($config['app']['base_url'] ?? '')));
+$baseUrlRaw = trim((string)($_POST['base_url'] ?? ($config['app']['base_url'] ?? '')));
+$baseUrl = rtrim($baseUrlRaw, '/');
 $appTimezone = trim((string)($_POST['app_timezone'] ?? ($config['app']['timezone'] ?? 'America/New_York')));
 $sessionSecure = isset($_POST['session_secure']) ? 1 : ((bool)($config['app']['session_secure'] ?? true) ? 1 : 0);
 
@@ -132,8 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'save_secrets') {
-            if ($dbDsn === '' || $dbUser === '') {
-                $errors[] = 'DB DSN and DB user are required.';
+            if ($dbHost === '' || $dbName === '' || $dbUser === '') {
+                $errors[] = 'DB host, DB name, and DB user are required.';
             }
             if ($smtpHost === '' || $smtpUser === '' || $smtpPort === '' || $fromEmail === '') {
                 $errors[] = 'SMTP host, user, port, and from email are required.';
@@ -153,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbSecretsPath = __DIR__ . '/../secrets/db_credentials.php';
                     $emailSecretsPath = __DIR__ . '/../secrets/email_secret.php';
                     $appSecretsPath = __DIR__ . '/../secrets/app_secret.php';
+                    $dbDsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $dbHost, $dbName);
 
                     setup_write_php_array_file($dbSecretsPath, [
                         'dsn' => $dbDsn,
@@ -169,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'Time Tracker',
                     ]);
                     setup_write_php_array_file($appSecretsPath, [
-                        'APP_BASE_URL' => rtrim($baseUrl, '/'),
+                        'APP_BASE_URL' => $baseUrl,
                         'APP_TIMEZONE' => $appTimezone,
                         'APP_SESSION_SECURE' => (bool)$sessionSecure,
                     ]);
@@ -287,7 +288,7 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <div class="setup-brand-hero mb-4 text-center">
         <img src="/assets/img/time-tracker-logo.jpg" alt="Time Tracker by Jim Kulakowski" class="setup-brand-logo img-fluid">
     </div>
-    <h1 class="mb-3">Time Tracker First-Time Setup</h1>
+    <h1 class="mb-3">Time Tracker Setup</h1>
     <?php if ($setupEnabled): ?>
         <div class="alert alert-warning">
             Setup override is enabled in config. Disable <code>config['setup']['enabled']</code> when not needed.
@@ -314,11 +315,15 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
             <input type="hidden" name="action" value="save_secrets">
 
             <div class="col-12"><h3 class="h6 mb-0">Database</h3></div>
-            <div class="col-md-7">
-                <label class="form-label" for="db_dsn">DB DSN</label>
-                <input id="db_dsn" name="db_dsn" class="form-control" required value="<?= h($dbDsn) ?>" placeholder="mysql:host=localhost;dbname=app;charset=utf8mb4">
+            <div class="col-md-4">
+                <label class="form-label" for="db_host">DB Host</label>
+                <input id="db_host" name="db_host" class="form-control" required value="<?= h($dbHost) ?>" placeholder="localhost">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
+                <label class="form-label" for="db_name">DB Name</label>
+                <input id="db_name" name="db_name" class="form-control" required value="<?= h($dbName) ?>" placeholder="time_tracker">
+            </div>
+            <div class="col-md-2">
                 <label class="form-label" for="db_user">DB User</label>
                 <input id="db_user" name="db_user" class="form-control" required value="<?= h($dbUser) ?>">
             </div>
@@ -357,6 +362,7 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
             <div class="col-md-6">
                 <label class="form-label" for="base_url">Base URL</label>
                 <input id="base_url" name="base_url" class="form-control" required value="<?= h($baseUrl) ?>" placeholder="https://time.example.com">
+                <div class="form-text">Use full URL without a path. Trailing slash is removed automatically.</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="app_timezone">Default Timezone</label>

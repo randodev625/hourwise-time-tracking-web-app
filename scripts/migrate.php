@@ -77,16 +77,11 @@ foreach ($files as $filePath) {
     echo "Applying {$filename}...\n";
 
     try {
-        $pdo->beginTransaction();
         $pdo->exec($sql);
         $markAppliedStmt->execute([$filename]);
-        $pdo->commit();
         echo "Applied {$filename}\n";
         $appliedCount++;
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
         fwrite(STDERR, "Failed on {$filename}: " . $e->getMessage() . PHP_EOL);
         exit(1);
     }
