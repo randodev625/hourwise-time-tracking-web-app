@@ -58,6 +58,33 @@
 
 /**------------------------------------------------------------------------*
  *
+ * Setup page branding
+ *
+ * ------------------------------------------------------------------------*/
+.setup-page {
+    background-image: linear-gradient(rgba(248, 249, 250, 0.95), rgba(248, 249, 250, 0.95)), url('/assets/img/time-tracker-background-graphic.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.setup-brand-hero {
+    border-radius: 1rem;
+    padding: 1.5rem 1rem;
+    background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('/assets/img/time-tracker-background-graphic.jpg');
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.setup-brand-logo {
+    max-width: 320px;
+    width: 100%;
+    height: auto;
+}
+
+/**------------------------------------------------------------------------*
+ *
  * Styles for navbar
  *
  * ------------------------------------------------------------------------*/
@@ -244,6 +271,13 @@
  footer .nav a {
     font-size: 0.875rem;
  }
+
+.app-footer {
+    position: relative;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url('/assets/img/time-tracker-background-graphic.jpg');
+    background-size: cover;
+    background-position: center;
+}
 
 /**------------------------------------------------------------------------*
  *

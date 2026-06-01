@@ -1,7 +1,7 @@
 <?php
 // footer.php
 ?>
-<footer class="border-top mt-5 py-5">
+<footer class="app-footer border-top mt-5 py-5">
     <div class="container-fluid">
         <div class="d-flex flex-wrap justify-content-between align-items-center">
 

@@ -283,8 +283,11 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
-<body class="bg-light">
+<body class="bg-light setup-page">
 <div class="container py-5" style="max-width: 860px;">
+    <div class="setup-brand-hero mb-4 text-center">
+        <img src="/assets/img/time-tracker-logo.jpg" alt="Time Tracker by Jim Kulakowski" class="setup-brand-logo img-fluid">
+    </div>
     <h1 class="mb-3">Time Tracker First-Time Setup</h1>
     <?php if ($setupEnabled): ?>
         <div class="alert alert-warning">
