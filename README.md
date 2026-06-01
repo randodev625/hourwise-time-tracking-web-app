@@ -1,4 +1,5 @@
 # Time Tracker App Guide
+![Time Tracker Social Card](assets/img/time-tracker-social-card.jpg)
 
 ## Overview
 This is a server-rendered PHP time-tracking app for freelancers/small teams.
