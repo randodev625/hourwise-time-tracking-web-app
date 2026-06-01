@@ -26,4 +26,7 @@ return [
     'auth' => [
         'password_reset_expires_minutes' => 60,
     ],
+    'setup' => [
+        'enabled' => false, // optional override: allow /setup.php even after initial setup is complete
+    ],
 ];

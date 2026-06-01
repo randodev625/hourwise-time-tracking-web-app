@@ -298,9 +298,9 @@ include __DIR__ . '/header.php';
         </div>
 
         <div class="card border-danger p-4 mt-4">
-            <h2 class="h5 mb-2 text-danger">Danger Zone</h2>
+            <h2 class="h5 mb-2">Danger Zone</h2>
             <p class="text-muted mb-3">Deleting your account permanently removes your profile and time-tracking data.</p>
-            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
                 Delete My Account
             </button>
         </div>

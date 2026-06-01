@@ -1,5 +1,9 @@
 # Time Tracker App Guide
 ![Time Tracker Social Card](assets/img/time-tracker-social-card.jpg)
+**Time Tracker by Jim Kulakowski**
+
+> [!WARNING]
+> This repository is public. Review [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before deploying to production.
 
 ## Overview
 This is a server-rendered PHP time-tracking app for freelancers/small teams.
@@ -104,14 +108,31 @@ Important:
 
 ## First-Time Setup Checklist
 1. Create DB and tables.
-2. Apply migrations in `migrations/`.
+2. Apply migrations in `migrations/`:
+   `php scripts/migrate.php`
 3. Create `../secrets/db_credentials.php`.
 4. Create `../secrets/email_secret.php`.
 5. Confirm local PHPMailer path exists at `lib/PHPMailer`.
 6. Configure `config.php` app values (`base_url`, `session_secure`, default timezone).
+
+### Optional Browser-Based Installer
+- On a fresh install, the app automatically redirects to `/setup.php`.
+- Run migrations, then create the first admin account.
+- After the first user exists, setup auto-locks and normal app routes resume.
+- Optional: set `config.php` -> `setup.enabled` to `true` only when you intentionally need setup access again.
 
 ## Notes for Future Development
 - Keep timezone conversion centralized in helpers.
 - Avoid hardcoding timezone strings in page files.
 - Prefer prepared statements (already used consistently).
 - When adding new user-scoped tables, include cleanup in `delete_user_account(...)`.
+
+## License
+Time Tracker by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
+
+In plain language:
+- You may use this app for your own personal use or internal freelance business use (including self-hosting on your own server).
+- You may modify it for your own needs.
+- You may not offer this app to third parties as a hosted or managed service (for example, as a SaaS time-tracking product).
+
+See the full license terms in [`LICENSE`](LICENSE).

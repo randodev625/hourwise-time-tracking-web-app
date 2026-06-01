@@ -258,6 +258,23 @@ function clear_auth_session(): void {
     session_regenerate_id(true);
 }
 
+function table_exists(PDO $pdo, string $table): bool {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
+    );
+    $stmt->execute([$table]);
+    return (int)$stmt->fetchColumn() > 0;
+}
+
+function app_setup_required(PDO $pdo): bool {
+    if (!table_exists($pdo, 'users')) {
+        return true;
+    }
+    $count = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    return $count === 0;
+}
+
 function tt_mail_config(): array {
     static $mailConfig = null;
     if ($mailConfig !== null) {

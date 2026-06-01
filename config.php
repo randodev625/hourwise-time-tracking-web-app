@@ -13,10 +13,10 @@ return [
         'pass' => $dbCredentials['pass'],
     ],
     'app' => [
-        'base_url' => 'https://time.example.com', // no trailing slash
+        'base_url' => 'https://your-url.com', // no trailing slash
         'timezone' => 'America/New_York',
         'session_name' => 'tt_sess',
-        'session_secure' => false, // true if HTTPS only
+        'session_secure' => true, // true if HTTPS only
         'session_lifetime' => 60 * 60 * 24 * 7, // 7 days
     ],
     'mail' => [
@@ -33,5 +33,8 @@ return [
     ],
     'auth' => [
         'password_reset_expires_minutes' => 60,
+    ],
+    'setup' => [
+        'enabled' => false, // optional override: allow /setup.php even after initial setup is complete
     ],
 ];
