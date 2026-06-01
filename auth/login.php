@@ -57,6 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Login - Time Tracker</title>
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon_io/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicon_io/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/img/favicon_io/site.webmanifest">
+    <link rel="shortcut icon" href="/assets/img/favicon_io/favicon.ico">
+    <meta name="theme-color" content="#ffffff">
 </head>
 
 <body class="bg-light">
@@ -108,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if (!empty($config['app']['allow_registration'])): ?>
                         Don’t have an account? <a href="/auth/register.php">Register here</a>.
                     <?php else: ?>
-                        New account registration is currently disabled.
+                        
                     <?php endif; ?>
                 </p>
             </div>

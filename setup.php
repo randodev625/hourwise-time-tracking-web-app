@@ -108,6 +108,7 @@ $baseUrlRaw = trim((string)($_POST['base_url'] ?? ($config['app']['base_url'] ??
 $baseUrl = rtrim($baseUrlRaw, '/');
 $appTimezone = trim((string)($_POST['app_timezone'] ?? ($config['app']['timezone'] ?? 'America/New_York')));
 $sessionSecure = isset($_POST['session_secure']) ? 1 : ((bool)($config['app']['session_secure'] ?? true) ? 1 : 0);
+$allowRegistration = isset($_POST['allow_registration']) ? 1 : ((bool)($config['app']['allow_registration'] ?? false) ? 1 : 0);
 
 try {
     $pdo = setup_connect($config);
@@ -179,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'APP_BASE_URL' => $baseUrl,
                         'APP_TIMEZONE' => $appTimezone,
                         'APP_SESSION_SECURE' => (bool)$sessionSecure,
-                        'APP_ALLOW_REGISTRATION' => false,
+                        'APP_ALLOW_REGISTRATION' => (bool)$allowRegistration,
                     ]);
 
                     $messages[] = 'Core setup values saved. Re-testing DB connection...';
@@ -358,7 +359,6 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
             <div class="col-md-6">
                 <label class="form-label" for="base_url">Base URL</label>
                 <input id="base_url" name="base_url" class="form-control" required value="<?= h($baseUrl) ?>" placeholder="https://time.example.com">
-                <div class="form-text">Use full URL without a path. Trailing slash is removed automatically.</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="app_timezone">Default Timezone</label>
@@ -373,6 +373,13 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
                     <input class="form-check-input" type="checkbox" id="session_secure" name="session_secure" value="1" <?= $sessionSecure ? 'checked' : '' ?>>
                     <label class="form-check-label" for="session_secure">HTTPS Cookies</label>
                 </div>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="allow_registration" name="allow_registration" value="1" <?= $allowRegistration ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="allow_registration">Allow other users to register accounts</label>
+                </div>
+                <div class="form-text">You can change this later in <code>Admin Settings</code>.</div>
             </div>
 
             <div class="col-12 mt-5"><h3 class="h6 mb-0">SMTP / Email</h3></div>

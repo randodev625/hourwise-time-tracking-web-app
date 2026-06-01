@@ -118,6 +118,9 @@ include __DIR__ . '/header.php';
     <hr class="my-4">
 
     <h2 class="h5 mb-3">Mail Settings</h2>
+    <p class="text-muted">
+        SMTP is optional, but recommended for reliable delivery of app emails, especially password reset requests.
+    </p>
     <form method="post" class="row g-3">
         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="action" value="save_mail">
