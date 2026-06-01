@@ -282,7 +282,7 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
-<body class="bg-light setup-page">
+<body class="setup-page">
 <div class="container py-5" style="max-width: 860px;">
     <div class="setup-brand-hero mb-4 text-center">
         <img src="/assets/img/time-tracker-logo.jpg" alt="Time Tracker by Jim Kulakowski" class="setup-brand-logo img-fluid">
@@ -307,8 +307,8 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <?php endif; ?>
 
     <div class="card p-4 mb-4">
-        <h2 class="h5">Step 0: Save Hosting and Mail Credentials</h2>
-        <p class="text-muted mb-3">Writes <code>../secrets/db_credentials.php</code>, <code>../secrets/email_secret.php</code>, and <code>../secrets/app_secret.php</code>.</p>
+        <h2 class="h5">Step 1: Connect Your Hosting and Mail</h2>
+        <p class="text-muted mb-3">Enter your production values, then save. This creates <code>../secrets/db_credentials.php</code>, <code>../secrets/email_secret.php</code>, and <code>../secrets/app_secret.php</code>.</p>
         <form method="post" class="row g-3">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="save_secrets">
@@ -374,14 +374,14 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
             </div>
 
             <div class="col-12">
-                <button type="submit" class="btn btn-dark">Save Credentials</button>
+                <button type="submit" class="btn btn-dark">Save and Continue</button>
             </div>
         </form>
     </div>
 
     <div class="card p-4 mb-4">
-        <h2 class="h5">Step 1: Run Migrations</h2>
-        <p class="text-muted mb-3">Creates required tables from <code>/migrations</code> and tracks applied files.</p>
+        <h2 class="h5">Step 2: Create Database Tables</h2>
+        <p class="text-muted mb-3">Runs all migration files from <code>/migrations</code> and records what was applied.</p>
         <form method="post">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="run_migrations">
@@ -390,10 +390,10 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     </div>
 
     <div class="card p-4">
-        <h2 class="h5">Step 2: Create First Admin Account</h2>
+        <h2 class="h5">Step 3: Create Your Admin Account</h2>
         <?php if (!$canCreateAdmin): ?>
             <p class="text-muted mb-0">
-                This step unlocks only when the <code>users</code> table exists and has zero users.
+                This step unlocks after Step 2 is complete and the <code>users</code> table is ready.
             </p>
         <?php else: ?>
             <form method="post" class="row g-3">
