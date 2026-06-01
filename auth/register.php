@@ -4,6 +4,10 @@ if (!empty($_SESSION['user'])) {
     header('Location: /dashboard.php');
     exit;
 }
+if (empty($config['app']['allow_registration'])) {
+    http_response_code(404);
+    exit('Registration is disabled for this installation.');
+}
 
 $err = '';
 $display_name = trim($_POST['display_name'] ?? '');

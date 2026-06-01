@@ -105,7 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <p class="auth-switch mb-0">
-                    Don’t have an account? <a href="/auth/register.php">Register here</a>.
+                    <?php if (!empty($config['app']['allow_registration'])): ?>
+                        Don’t have an account? <a href="/auth/register.php">Register here</a>.
+                    <?php else: ?>
+                        New account registration is currently disabled.
+                    <?php endif; ?>
                 </p>
             </div>
         </div>

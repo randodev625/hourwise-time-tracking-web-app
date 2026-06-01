@@ -20,6 +20,7 @@ return [
     'app' => [
         'base_url' => (string)($appSecret['APP_BASE_URL'] ?? ''),
         'timezone' => (string)($appSecret['APP_TIMEZONE'] ?? 'America/New_York'),
+        'allow_registration' => (bool)($appSecret['APP_ALLOW_REGISTRATION'] ?? false),
         'session_name' => 'tt_sess',
         'session_secure' => (bool)($appSecret['APP_SESSION_SECURE'] ?? true), // true if HTTPS only
         'session_lifetime' => 60 * 60 * 24 * 7, // 7 days

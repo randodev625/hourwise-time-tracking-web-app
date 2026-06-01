@@ -179,6 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'APP_BASE_URL' => $baseUrl,
                         'APP_TIMEZONE' => $appTimezone,
                         'APP_SESSION_SECURE' => (bool)$sessionSecure,
+                        'APP_ALLOW_REGISTRATION' => false,
                     ]);
 
                     $messages[] = 'Core setup values saved. Re-testing DB connection...';
