@@ -97,10 +97,10 @@ if ($existingDsn !== '' && preg_match('/host=([^;]+);dbname=([^;]+)/i', $existin
 $dbHost = trim((string)($_POST['db_host'] ?? $dbHostDefault));
 $dbName = trim((string)($_POST['db_name'] ?? $dbNameDefault));
 $dbUser = trim((string)($_POST['db_user'] ?? ($config['db']['user'] ?? '')));
-$dbPass = (string)($_POST['db_pass'] ?? ($config['db']['pass'] ?? ''));
+$dbPass = (string)($_POST['db_pass'] ?? '');
 $smtpHost = trim((string)($_POST['smtp_host'] ?? ($config['mail']['host'] ?? '')));
 $smtpUser = trim((string)($_POST['smtp_user'] ?? ($config['mail']['username'] ?? '')));
-$smtpPass = (string)($_POST['smtp_pass'] ?? ($config['mail']['password'] ?? ''));
+$smtpPass = (string)($_POST['smtp_pass'] ?? '');
 $smtpPort = (string)($_POST['smtp_port'] ?? (string)($config['mail']['port'] ?? 465));
 $fromEmail = trim((string)($_POST['from_email'] ?? ($config['mail']['from_email'] ?? '')));
 $fromName = trim((string)($_POST['from_name'] ?? ($config['mail']['from_name'] ?? 'Time Tracker')));
@@ -272,6 +272,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) === 0;
+$secretsReady = is_file(__DIR__ . '/../secrets/db_credentials.php')
+    && is_file(__DIR__ . '/../secrets/email_secret.php')
+    && is_file(__DIR__ . '/../secrets/app_secret.php');
+$migrationsReady = false;
+if ($pdo && table_exists($pdo, 'schema_migrations')) {
+    $migrationsReady = (int)$pdo->query('SELECT COUNT(*) FROM schema_migrations')->fetchColumn() > 0;
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -279,8 +286,16 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Time Tracker Setup</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon_io/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicon_io/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/img/favicon_io/site.webmanifest">
+    <link rel="shortcut icon" href="/assets/img/favicon_io/favicon.ico">
+    <meta name="theme-color" content="#ffffff">
 </head>
 <body class="setup-page">
 <div class="container py-5" style="max-width: 860px;">
@@ -294,20 +309,20 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
         </div>
     <?php endif; ?>
 
-    <?php foreach ($messages as $m): ?>
-        <div class="alert alert-success"><?= h($m) ?></div>
-    <?php endforeach; ?>
     <?php foreach ($errors as $e): ?>
         <div class="alert alert-danger"><?= h($e) ?></div>
     <?php endforeach; ?>
     <?php if (!$pdo && empty($errors)): ?>
         <div class="alert alert-secondary">
-            Enter your database and mail credentials below, then click <strong>Save Credentials</strong> to continue setup.
+            Enter your database and mail credentials below, then click <strong>Save and Continue</strong> to continue setup.
         </div>
     <?php endif; ?>
 
     <div class="card p-4 mb-4">
         <h2 class="h5">Step 1: Connect Your Hosting and Mail</h2>
+        <?php if ($secretsReady): ?>
+            <div class="setup-step-complete"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>Completed</span></div>
+        <?php else: ?>
         <p class="text-muted mb-3">Enter your production values, then save. This creates <code>../secrets/db_credentials.php</code>, <code>../secrets/email_secret.php</code>, and <code>../secrets/app_secret.php</code>.</p>
         <form method="post" class="row g-3">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
@@ -328,7 +343,7 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="db_pass">DB Pass</label>
-                <input id="db_pass" name="db_pass" type="password" class="form-control" value="<?= h($dbPass) ?>">
+                <input id="db_pass" name="db_pass" type="password" class="form-control" value="">
             </div>
 
             <div class="col-12 mt-2"><h3 class="h6 mb-0">SMTP / Email</h3></div>
@@ -342,7 +357,7 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="smtp_pass">SMTP Pass</label>
-                <input id="smtp_pass" name="smtp_pass" type="password" class="form-control" value="<?= h($smtpPass) ?>">
+                <input id="smtp_pass" name="smtp_pass" type="password" class="form-control" value="">
             </div>
             <div class="col-md-1">
                 <label class="form-label" for="smtp_port">Port</label>
@@ -382,16 +397,21 @@ $canCreateAdmin = $pdo && table_exists($pdo, 'users') && setup_user_count($pdo) 
                 <button type="submit" class="btn btn-dark">Save and Continue</button>
             </div>
         </form>
+        <?php endif; ?>
     </div>
 
     <div class="card p-4 mb-4">
         <h2 class="h5">Step 2: Create Database Tables</h2>
-        <p class="text-muted mb-3">Runs all migration files from <code>/migrations</code> and records what was applied.</p>
-        <form method="post">
-            <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-            <input type="hidden" name="action" value="run_migrations">
-            <button type="submit" class="btn btn-primary" <?= !$pdo ? 'disabled' : '' ?>>Run Migrations</button>
-        </form>
+        <?php if ($migrationsReady): ?>
+            <div class="setup-step-complete"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>Completed</span></div>
+        <?php else: ?>
+            <p class="text-muted mb-3">Runs all migration files from <code>/migrations</code> and records what was applied.</p>
+            <form method="post">
+                <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                <input type="hidden" name="action" value="run_migrations">
+                <button type="submit" class="btn btn-primary" <?= !$pdo ? 'disabled' : '' ?>>Run Migrations</button>
+            </form>
+        <?php endif; ?>
     </div>
 
     <div class="card p-4">

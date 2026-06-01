@@ -15,10 +15,10 @@ $is_account_active = in_array($current_page, ['account.php'], true);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? htmlspecialchars($page_title) . ' – James June Time Tracker' : 'Time Tracker' ?></title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Bootstrap CSS (self-hosted) -->
+    <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (self-hosted) -->
+    <link href="/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/assets/style.css">
@@ -83,4 +83,4 @@ $is_account_active = in_array($current_page, ['account.php'], true);
         </div>
     </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>

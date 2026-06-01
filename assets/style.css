@@ -62,8 +62,9 @@
  *
  * ------------------------------------------------------------------------*/
 .setup-page {
+    min-height: 100vh;
     background-image: url('/assets/img/time-tracker-background-graphic.jpg');
-    background-size: contain%;
+    background-size: contain;
     background-position: right bottom;
     background-repeat: no-repeat;
 }
@@ -73,9 +74,17 @@
 }
 
 .setup-brand-logo {
-    max-width: 300px;
+    max-width: 200px;
     width: 100%;
     height: auto;
+}
+
+.setup-step-complete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #198754;
 }
 
 /**------------------------------------------------------------------------*
