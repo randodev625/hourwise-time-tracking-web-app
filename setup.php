@@ -69,8 +69,7 @@ function setup_run_migrations(PDO $pdo, string $migrationsDir): array {
 
         $sql = trim((string)file_get_contents($filePath));
         if ($sql === '') {
-            $markAppliedStmt->execute([$filename]);
-            $skipped[] = $filename . ' (empty)';
+            $skipped[] = $filename . ' (empty file, not applied)';
             continue;
         }
 

@@ -68,8 +68,7 @@ foreach ($files as $filePath) {
 
     $sql = trim((string)file_get_contents($filePath));
     if ($sql === '') {
-        echo "Skipping {$filename} (empty file)\n";
-        $markAppliedStmt->execute([$filename]);
+        echo "Skipping {$filename} (empty file, not applied)\n";
         $skippedCount++;
         continue;
     }
