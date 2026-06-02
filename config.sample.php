@@ -13,7 +13,7 @@ return [
         'session_lifetime' => 60 * 60 * 24 * 7,
     ],
     'mail' => [
-        'phpmailer_path' => __DIR__ . '/../lib/PHPMailer',
+        'phpmailer_path' => __DIR__ . '/lib/PHPMailer',
         'host' => '', // loaded from ../secrets/email_secret.php
         'username' => '',
         'password' => '',

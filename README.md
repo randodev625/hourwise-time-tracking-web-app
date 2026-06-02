@@ -3,14 +3,16 @@
 **Time Tracker by Jim Kulakowski**
 
 > [!WARNING]
-> This repository is public. Review [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before deploying to production.
+> This repository is currently private and should stay private until the public-release hardening checklist is complete.
+> Start with [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before publishing on GitHub or deploying to production.
 
 ## Overview
 This is a server-rendered PHP time-tracking app for freelancers/small teams.
 
 Core features:
 - User authentication (register/login/logout)
-- Password reset by email (PHPMailer + SMTP)
+- Password reset by email (PHPMailer; SMTP optional but recommended)
+- Admin settings (admin-only): SMTP config + registration access toggle
 - Client/Project/Category management
 - Start/stop timers and edit entries
 - Dashboard summaries and charts
@@ -21,7 +23,8 @@ Core features:
 ## Tech Stack
 - PHP (plain PHP pages, no framework)
 - MySQL (via PDO)
-- Bootstrap 5 (UI/layout)
+- Bootstrap 5 (self-hosted vendor files)
+- Font Awesome (self-hosted vendor files)
 - Chart.js (local vendor file): `/assets/vendor/chartjs/chart.umd.min.js`
 
 ## App Structure
@@ -109,6 +112,7 @@ return [
   'APP_BASE_URL' => 'https://time.example.com',
   'APP_TIMEZONE' => 'America/New_York',
   'APP_SESSION_SECURE' => true,
+  'APP_ALLOW_REGISTRATION' => false,
 ];
 ```
 
@@ -116,6 +120,26 @@ Important:
 - Keep `secrets/` outside web root and out of version control.
 - Ensure filesystem permissions restrict read access.
 - Rotate SMTP/DB credentials if exposed.
+
+## Security Hardening Status
+This app is not ready for a public repository or production deployment until the issues in
+[SECURITY-HARDENING.md](SECURITY-HARDENING.md) are worked through.
+
+Highest-priority items:
+- Add CSRF checks and hidden CSRF fields to every state-changing POST form.
+- Replace session-only login throttling with persistent DB-backed rate limiting.
+- Add throttling for password reset requests.
+- Restrict redirect targets that are currently influenced by request parameters.
+- Add application or web-server security headers.
+- Run a secret scan across the full Git history before making the repository public.
+- Add CI checks for PHP syntax linting once PHP is available in the build environment.
+
+Current positive foundations:
+- Runtime credentials are loaded from `../secrets/*` instead of hardcoded in repo files.
+- PDO prepared statements are used throughout the main data access paths.
+- Password reset tokens are stored as hashes.
+- Uploaded avatars use server-side MIME checks and randomized filenames.
+- Runtime avatar uploads are ignored by Git.
 
 ## First-Time Setup Checklist
 1. Create DB and tables.
@@ -128,15 +152,27 @@ Important:
 
 ### Optional Browser-Based Installer
 - On a fresh install, the app automatically redirects to `/setup.php`.
-- Enter DB, SMTP, and app URL/timezone credentials to generate secret files.
+- Enter DB and app URL/timezone credentials to generate secret files.
+- SMTP is optional during install; it can be configured later in Admin Settings.
+- Choose whether to allow new user self-registration during setup.
 - Run migrations, then create the first admin account.
 - After the first user exists, setup auto-locks and normal app routes resume.
 - Optional: set `config.php` -> `setup.enabled` to `true` only when you intentionally need setup access again.
+
+## Admin Controls
+- `/admin_settings.php` is accessible only to the first user account (user ID `1`).
+- Admin Settings includes:
+  - SMTP mail configuration
+  - Global registration toggle (`allow_registration`)
+- When registration is disabled, `/auth/register.php` redirects to login and registration links are hidden.
 
 ## Notes for Future Development
 - Keep timezone conversion centralized in helpers.
 - Avoid hardcoding timezone strings in page files.
 - Prefer prepared statements (already used consistently).
+- Require CSRF validation for every POST that creates, updates, deletes, exports, starts, or stops app data.
+- Keep redirects constrained to known local app paths.
+- Add migrations for any new security tables, such as rate limiting or audit logging.
 - When adding new user-scoped tables, include cleanup in `delete_user_account(...)`.
 
 ## License
