@@ -508,14 +508,20 @@ include __DIR__ . '/header.php';
                 </form>
             <?php elseif ($pendingTwoFactorSecret !== ''): ?>
                 <div class="mb-3">
+                    <label class="form-label">Scan QR Code</label>
+                    <div id="two_factor_qrcode" class="two-factor-qr" aria-label="Two-factor setup QR code"></div>
+                    <div class="form-text">Scan this code with your authenticator app.</div>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label" for="two_factor_setup_key">Setup Key</label>
                     <input id="two_factor_setup_key" class="form-control font-monospace" value="<?= h($pendingTwoFactorSecret) ?>" readonly>
-                    <div class="form-text">Add this setup key to your authenticator app.</div>
+                    <div class="form-text">Use this key if your authenticator app cannot scan the QR code.</div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="two_factor_setup_uri">Authenticator URI</label>
-                    <textarea id="two_factor_setup_uri" class="form-control font-monospace" rows="3" readonly><?= h($twoFactorSetupUri) ?></textarea>
-                </div>
+                <details class="mb-3">
+                    <summary class="small text-muted">Show authenticator URI</summary>
+                    <textarea id="two_factor_setup_uri" class="form-control font-monospace mt-2" rows="3" readonly><?= h($twoFactorSetupUri) ?></textarea>
+                </details>
 
                 <form method="post">
                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
@@ -592,5 +598,26 @@ include __DIR__ . '/header.php';
         </div>
     </div>
 </div>
+
+<?php if ($pendingTwoFactorSecret !== '' && $twoFactorSetupUri !== ''): ?>
+    <script src="/assets/vendor/qrcodejs/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var target = document.getElementById('two_factor_qrcode');
+            if (!target || typeof QRCode === 'undefined') {
+                return;
+            }
+
+            new QRCode(target, {
+                text: <?= json_encode($twoFactorSetupUri, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                width: 180,
+                height: 180,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        });
+    </script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/footer.php'; ?>

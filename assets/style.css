@@ -267,6 +267,23 @@
     border: 1px solid #d0d7de;
 }
 
+.two-factor-qr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 204px;
+    min-height: 204px;
+    padding: 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 0.5rem;
+    background: #fff;
+}
+
+.two-factor-qr img,
+.two-factor-qr canvas {
+    display: block;
+}
+
 /**------------------------------------------------------------------------*
  *
  * Styles for Footer

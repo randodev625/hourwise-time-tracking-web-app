@@ -40,6 +40,7 @@ Security and operations features:
 - Bootstrap 5 (self-hosted vendor files)
 - Font Awesome (self-hosted vendor files)
 - Chart.js (local vendor file): `/assets/vendor/chartjs/chart.umd.min.js`
+- QRCode.js (local vendor file): `/assets/vendor/qrcodejs/qrcode.min.js`
 
 ## App Structure
 - `middleware.php`: bootstraps config, helpers, session, DB.
