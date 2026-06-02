@@ -1,10 +1,5 @@
 # HourWise App Guide
 ![HourWise Social Card](assets/img/hourwise-social-card.jpg)
-**HourWise by Jim Kulakowski**
-
-> [!WARNING]
-> This repository is currently private while public-release hardening is being completed.
-> Review [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before publishing on GitHub or deploying to production.
 
 ## Overview
 This is a server-rendered PHP time-tracking app for freelancers/small teams.
