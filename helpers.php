@@ -561,8 +561,8 @@ function is_admin_user(): bool {
 function require_admin(): void {
     require_login();
     if (!is_admin_user()) {
-        http_response_code(403);
-        exit('Forbidden');
+        require __DIR__ . '/403.php';
+        exit;
     }
 }
 

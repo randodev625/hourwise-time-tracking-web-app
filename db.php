@@ -17,7 +17,6 @@ try {
     if (function_exists('log_exception')) {
         log_exception($e, 'Database connection failed.');
     }
-    http_response_code(500);
-    echo 'DB connection failed.';
+    require __DIR__ . '/500.php';
     exit;
 }
