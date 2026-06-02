@@ -15,6 +15,7 @@ if (!$user) {
 
 $messages = [];
 $errors = [];
+$newRecoveryCodes = [];
 
 function load_user(PDO $pdo, int $userId): array {
     $stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone, password_hash FROM users WHERE id = ? LIMIT 1');
@@ -45,6 +46,18 @@ function avatar_upload_limits(): array {
             'image/webp' => 'webp',
         ],
     ];
+}
+
+function account_two_factor_challenge_valid(PDO $pdo, int $userId, ?array $settings, string $code): bool {
+    if (!$settings) {
+        return false;
+    }
+
+    if (two_factor_verify_code((string)$settings['secret'], $code)) {
+        return true;
+    }
+
+    return two_factor_use_recovery_code($pdo, $userId, $code);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -141,6 +154,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     refresh_session_security();
                     $messages[] = 'Password updated successfully.';
+                }
+            }
+
+            if ($action === 'start_two_factor_setup') {
+                if (!password_verify((string)($_POST['current_password_2fa'] ?? ''), $userWithPassword['password_hash'])) {
+                    $errors[] = 'Your current password is incorrect.';
+                }
+
+                if (!$errors) {
+                    $_SESSION['pending_2fa_secret'] = two_factor_generate_secret();
+                    $messages[] = 'Two-factor setup started. Add the setup key to your authenticator app, then enter the code it generates.';
+                }
+            }
+
+            if ($action === 'confirm_two_factor_setup') {
+                $pendingSecret = (string)($_SESSION['pending_2fa_secret'] ?? '');
+                $code = (string)($_POST['two_factor_code'] ?? '');
+
+                if ($pendingSecret === '') {
+                    $errors[] = 'Two-factor setup has expired. Start setup again.';
+                } elseif (!two_factor_verify_code($pendingSecret, $code)) {
+                    $errors[] = 'Invalid two-factor code.';
+                }
+
+                if (!$errors) {
+                    $newRecoveryCodes = two_factor_generate_recovery_codes();
+                    $recoveryJson = two_factor_hash_recovery_codes($newRecoveryCodes);
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO user_two_factor (user_id, secret, recovery_codes_json, enabled_at)
+                         VALUES (?, ?, ?, CURRENT_TIMESTAMP())
+                         ON DUPLICATE KEY UPDATE
+                            secret = VALUES(secret),
+                            recovery_codes_json = VALUES(recovery_codes_json),
+                            enabled_at = CURRENT_TIMESTAMP()'
+                    );
+                    $stmt->execute([(int)$userId, $pendingSecret, $recoveryJson]);
+                    unset($_SESSION['pending_2fa_secret']);
+                    refresh_session_security();
+                    audit_log('two_factor_enabled', ['user_id' => (int)$userId]);
+                    $messages[] = 'Two-factor authentication enabled. Save your recovery codes now.';
+                }
+            }
+
+            if ($action === 'regenerate_two_factor_recovery_codes') {
+                $settings = two_factor_settings($pdo, (int)$userId);
+                $code = (string)($_POST['two_factor_code_manage'] ?? '');
+
+                if (!password_verify((string)($_POST['current_password_2fa_manage'] ?? ''), $userWithPassword['password_hash'])) {
+                    $errors[] = 'Your current password is incorrect.';
+                } elseif (!account_two_factor_challenge_valid($pdo, (int)$userId, $settings, $code)) {
+                    $errors[] = 'Invalid two-factor code.';
+                }
+
+                if (!$errors) {
+                    $newRecoveryCodes = two_factor_generate_recovery_codes();
+                    $stmt = $pdo->prepare('UPDATE user_two_factor SET recovery_codes_json = ? WHERE user_id = ?');
+                    $stmt->execute([two_factor_hash_recovery_codes($newRecoveryCodes), (int)$userId]);
+                    audit_log('two_factor_recovery_codes_regenerated', ['user_id' => (int)$userId]);
+                    $messages[] = 'New recovery codes generated. Save them now; previous recovery codes no longer work.';
+                }
+            }
+
+            if ($action === 'disable_two_factor') {
+                $settings = two_factor_settings($pdo, (int)$userId);
+                $code = (string)($_POST['two_factor_code_manage'] ?? '');
+
+                if (!password_verify((string)($_POST['current_password_2fa_manage'] ?? ''), $userWithPassword['password_hash'])) {
+                    $errors[] = 'Your current password is incorrect.';
+                } elseif (!account_two_factor_challenge_valid($pdo, (int)$userId, $settings, $code)) {
+                    $errors[] = 'Invalid two-factor code.';
+                }
+
+                if (!$errors) {
+                    $pdo->prepare('DELETE FROM user_two_factor WHERE user_id = ?')->execute([(int)$userId]);
+                    unset($_SESSION['pending_2fa_secret']);
+                    refresh_session_security();
+                    audit_log('two_factor_disabled', ['user_id' => (int)$userId]);
+                    $messages[] = 'Two-factor authentication disabled.';
                 }
             }
 
@@ -250,6 +341,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $accountAvatarUrl = avatar_url($user['avatar_path'] ?? '');
+$twoFactorSettings = two_factor_settings($pdo, (int)$userId);
+$twoFactorEnabled = $twoFactorSettings !== null;
+$pendingTwoFactorSecret = (string)($_SESSION['pending_2fa_secret'] ?? '');
+$twoFactorSetupUri = $pendingTwoFactorSecret !== ''
+    ? two_factor_otpauth_uri($pendingTwoFactorSecret, (string)($user['email'] ?? ''))
+    : '';
 include __DIR__ . '/header.php';
 ?>
 <h1 class="mb-4">Manage Account</h1>
@@ -260,6 +357,17 @@ include __DIR__ . '/header.php';
 <?php foreach ($errors as $error): ?>
     <div class="alert alert-danger"><?= h($error) ?></div>
 <?php endforeach; ?>
+<?php if (!empty($newRecoveryCodes)): ?>
+    <div class="alert alert-warning">
+        <strong>Save these recovery codes now.</strong>
+        <p class="mb-2">Each code can be used once if you lose access to your authenticator app.</p>
+        <div class="row g-2">
+            <?php foreach ($newRecoveryCodes as $code): ?>
+                <div class="col-sm-6"><code><?= h($code) ?></code></div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="row g-4">
     <div class="col-lg-7">
@@ -356,6 +464,81 @@ include __DIR__ . '/header.php';
                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                     <input type="hidden" name="action" value="remove_avatar">
                     <button type="submit" class="btn btn-outline-danger">Remove Photo</button>
+                </form>
+            <?php endif; ?>
+        </div>
+
+        <div class="card p-4 mt-4">
+            <h2 class="h5 mb-2">Two-Factor Authentication</h2>
+            <p class="text-muted mb-3">
+                <?= $twoFactorEnabled ? 'Two-factor authentication is enabled for your account.' : 'Add an authenticator code requirement to your login.' ?>
+            </p>
+
+            <?php if ($twoFactorEnabled): ?>
+                <form method="post" class="mb-3">
+                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="regenerate_two_factor_recovery_codes">
+
+                    <div class="mb-3">
+                        <label for="current_password_2fa_recovery" class="form-label">Current Password</label>
+                        <input type="password" id="current_password_2fa_recovery" name="current_password_2fa_manage" class="form-control" required autocomplete="current-password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="two_factor_code_recovery" class="form-label">Authenticator or Recovery Code</label>
+                        <input type="text" id="two_factor_code_recovery" name="two_factor_code_manage" class="form-control" required autocomplete="one-time-code">
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-primary">Regenerate Recovery Codes</button>
+                </form>
+
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="disable_two_factor">
+
+                    <div class="mb-3">
+                        <label for="current_password_2fa_disable" class="form-label">Current Password</label>
+                        <input type="password" id="current_password_2fa_disable" name="current_password_2fa_manage" class="form-control" required autocomplete="current-password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="two_factor_code_disable" class="form-label">Authenticator or Recovery Code</label>
+                        <input type="text" id="two_factor_code_disable" name="two_factor_code_manage" class="form-control" required autocomplete="one-time-code">
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-danger">Disable Two-Factor</button>
+                </form>
+            <?php elseif ($pendingTwoFactorSecret !== ''): ?>
+                <div class="mb-3">
+                    <label class="form-label" for="two_factor_setup_key">Setup Key</label>
+                    <input id="two_factor_setup_key" class="form-control font-monospace" value="<?= h($pendingTwoFactorSecret) ?>" readonly>
+                    <div class="form-text">Add this setup key to your authenticator app.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="two_factor_setup_uri">Authenticator URI</label>
+                    <textarea id="two_factor_setup_uri" class="form-control font-monospace" rows="3" readonly><?= h($twoFactorSetupUri) ?></textarea>
+                </div>
+
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="confirm_two_factor_setup">
+
+                    <div class="mb-3">
+                        <label for="two_factor_code_confirm" class="form-label">Authenticator Code</label>
+                        <input type="text" id="two_factor_code_confirm" name="two_factor_code" class="form-control" required inputmode="numeric" autocomplete="one-time-code">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enable Two-Factor</button>
+                </form>
+            <?php else: ?>
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="start_two_factor_setup">
+
+                    <div class="mb-3">
+                        <label for="current_password_2fa" class="form-label">Current Password</label>
+                        <input type="password" id="current_password_2fa" name="current_password_2fa" class="form-control" required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-primary">Start Two-Factor Setup</button>
                 </form>
             <?php endif; ?>
         </div>

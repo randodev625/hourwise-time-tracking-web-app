@@ -12,6 +12,7 @@ This is a server-rendered PHP time-tracking app for freelancers/small teams.
 Core features:
 - User authentication (register/login/logout)
 - Email verification for self-registered accounts
+- Optional two-factor authentication with recovery codes
 - Password reset by email (PHPMailer; SMTP optional but recommended)
 - First-run browser setup for database, SMTP, app settings, migrations, and initial admin account
 - Admin settings (admin-only): SMTP config, registration access toggle, and read-only diagnostics
@@ -27,6 +28,7 @@ Security and operations features:
 - CSRF protection on state-changing POST actions
 - DB-backed login and password-reset throttling
 - Hashed email-verification and password-reset tokens
+- Optional TOTP two-factor authentication for all users
 - Session ID and CSRF token rotation after sensitive auth/account events
 - Apache/LiteSpeed security header defaults in `.htaccess`
 - Avatar upload validation and upload-directory execution protections
@@ -73,6 +75,7 @@ Security and operations features:
 - `time_records`
 - `password_reset_tokens`
 - `email_verification_tokens`
+- `user_two_factor`
 - `auth_rate_limits`
 - legacy/optional tables referenced by code: `jobs`, `report_links`
 
@@ -152,6 +155,7 @@ Current positive foundations:
 - Request-controlled redirects are constrained to known local app paths.
 - Login and forgot-password flows use persistent DB-backed rate limiting.
 - Self-registered accounts must verify their email address before login.
+- Users can enable TOTP-based two-factor authentication and recovery codes.
 - Session cookies use `HttpOnly` and `SameSite=Lax`; production should keep `APP_SESSION_SECURE = true`.
 - Session IDs and CSRF tokens rotate after login, first-run setup login, password change, email change, and account deletion.
 - Password reset tokens are stored as hashes.

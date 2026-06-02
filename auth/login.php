@@ -39,6 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([$new, $u['id']]);
             }
 
+            if (two_factor_enabled($pdo, (int)$u['id'])) {
+                session_regenerate_id(true);
+                $_SESSION['pending_2fa_user_id'] = (int)$u['id'];
+                $_SESSION['pending_2fa_started_at'] = time();
+                audit_log('login_2fa_required', ['user_id' => (int)$u['id']]);
+                header('Location: /auth/two_factor.php');
+                exit;
+            }
+
             set_user_session($u);
             refresh_session_security();
             audit_log('login_success');

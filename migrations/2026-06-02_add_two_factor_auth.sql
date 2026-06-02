@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS user_two_factor (
+    user_id INT(11) NOT NULL,
+    secret VARCHAR(64) NOT NULL,
+    recovery_codes_json TEXT DEFAULT NULL,
+    enabled_at DATETIME NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id),
+    CONSTRAINT user_two_factor_user_fk FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

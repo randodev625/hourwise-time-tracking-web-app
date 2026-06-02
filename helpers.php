@@ -189,6 +189,184 @@ function refresh_session_security(): void {
 
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 
+function base32_encode_no_padding(string $bytes): string {
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $bits = '';
+    $encoded = '';
+    $length = strlen($bytes);
+
+    for ($i = 0; $i < $length; $i++) {
+        $bits .= str_pad(decbin(ord($bytes[$i])), 8, '0', STR_PAD_LEFT);
+    }
+
+    foreach (str_split($bits, 5) as $chunk) {
+        if (strlen($chunk) < 5) {
+            $chunk = str_pad($chunk, 5, '0', STR_PAD_RIGHT);
+        }
+        $encoded .= $alphabet[bindec($chunk)];
+    }
+
+    return $encoded;
+}
+
+function base32_decode_no_padding(string $encoded): string {
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $encoded = strtoupper(preg_replace('/[^A-Z2-7]/', '', $encoded) ?? '');
+    $bits = '';
+    $bytes = '';
+
+    $length = strlen($encoded);
+    for ($i = 0; $i < $length; $i++) {
+        $position = strpos($alphabet, $encoded[$i]);
+        if ($position === false) {
+            return '';
+        }
+        $bits .= str_pad(decbin($position), 5, '0', STR_PAD_LEFT);
+    }
+
+    foreach (str_split($bits, 8) as $chunk) {
+        if (strlen($chunk) === 8) {
+            $bytes .= chr(bindec($chunk));
+        }
+    }
+
+    return $bytes;
+}
+
+function two_factor_generate_secret(): string {
+    return base32_encode_no_padding(random_bytes(20));
+}
+
+function two_factor_code(string $secret, ?int $timestamp = null): string {
+    $key = base32_decode_no_padding($secret);
+    if ($key === '') {
+        return '';
+    }
+
+    $counter = intdiv($timestamp ?? time(), 30);
+    $binaryCounter = pack('N*', 0) . pack('N*', $counter);
+    $hash = hash_hmac('sha1', $binaryCounter, $key, true);
+    $offset = ord($hash[19]) & 0x0F;
+    $value = (
+        ((ord($hash[$offset]) & 0x7F) << 24) |
+        ((ord($hash[$offset + 1]) & 0xFF) << 16) |
+        ((ord($hash[$offset + 2]) & 0xFF) << 8) |
+        (ord($hash[$offset + 3]) & 0xFF)
+    );
+
+    return str_pad((string)($value % 1000000), 6, '0', STR_PAD_LEFT);
+}
+
+function two_factor_verify_code(string $secret, string $code, int $window = 1): bool {
+    $code = preg_replace('/\D/', '', $code) ?? '';
+    if (!preg_match('/^\d{6}$/', $code)) {
+        return false;
+    }
+
+    $now = time();
+    for ($i = -$window; $i <= $window; $i++) {
+        if (hash_equals(two_factor_code($secret, $now + ($i * 30)), $code)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function two_factor_otpauth_uri(string $secret, string $email): string {
+    $issuer = 'Time Tracker';
+    $label = rawurlencode($issuer . ':' . $email);
+    return 'otpauth://totp/' . $label
+        . '?secret=' . rawurlencode($secret)
+        . '&issuer=' . rawurlencode($issuer)
+        . '&algorithm=SHA1&digits=6&period=30';
+}
+
+function two_factor_settings(PDO $pdo, int $userId): ?array {
+    static $tableReady = null;
+    if ($tableReady === null) {
+        $tableReady = table_exists($pdo, 'user_two_factor');
+    }
+    if (!$tableReady) {
+        return null;
+    }
+
+    $stmt = $pdo->prepare('SELECT user_id, secret, recovery_codes_json, enabled_at FROM user_two_factor WHERE user_id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $settings ?: null;
+}
+
+function two_factor_enabled(PDO $pdo, int $userId): bool {
+    return two_factor_settings($pdo, $userId) !== null;
+}
+
+function two_factor_generate_recovery_codes(int $count = 8): array {
+    $codes = [];
+    for ($i = 0; $i < $count; $i++) {
+        $codes[] = strtoupper(bin2hex(random_bytes(4)));
+    }
+    return $codes;
+}
+
+function two_factor_hash_recovery_codes(array $codes): string {
+    $hashes = [];
+    foreach ($codes as $code) {
+        $hashes[] = password_hash(two_factor_normalize_recovery_code((string)$code), PASSWORD_DEFAULT);
+    }
+    return json_encode($hashes, JSON_UNESCAPED_SLASHES) ?: '[]';
+}
+
+function two_factor_normalize_recovery_code(string $code): string {
+    return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code) ?? '');
+}
+
+function two_factor_use_recovery_code(PDO $pdo, int $userId, string $code): bool {
+    $settings = two_factor_settings($pdo, $userId);
+    if (!$settings) {
+        return false;
+    }
+
+    $normalized = two_factor_normalize_recovery_code($code);
+    if ($normalized === '') {
+        return false;
+    }
+
+    $hashes = json_decode((string)($settings['recovery_codes_json'] ?? '[]'), true);
+    if (!is_array($hashes)) {
+        $hashes = [];
+    }
+
+    foreach ($hashes as $index => $hash) {
+        if (is_string($hash) && password_verify($normalized, $hash)) {
+            unset($hashes[$index]);
+            $updated = json_encode(array_values($hashes), JSON_UNESCAPED_SLASHES) ?: '[]';
+            $stmt = $pdo->prepare('UPDATE user_two_factor SET recovery_codes_json = ? WHERE user_id = ?');
+            $stmt->execute([$updated, $userId]);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function two_factor_complete_login(PDO $pdo, int $userId): ?array {
+    $stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$user) {
+        return null;
+    }
+
+    set_user_session($user);
+    unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_started_at']);
+    auth_rate_limit_clear($pdo, 'two_factor', (string)$userId);
+    refresh_session_security();
+    audit_log('login_success');
+
+    return $user;
+}
+
 function safe_redirect_path(string $value, string $fallback = 'entries.php', array $allowedPaths = []): string {
     $value = trim($value);
     if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
@@ -249,6 +427,11 @@ function auth_rate_limit_policy(string $action): array {
             'max_attempts' => 5,
             'window_minutes' => 60,
             'lock_minutes' => 60,
+        ],
+        'two_factor' => [
+            'max_attempts' => 10,
+            'window_minutes' => 15,
+            'lock_minutes' => 15,
         ],
         default => [
             'max_attempts' => 10,
