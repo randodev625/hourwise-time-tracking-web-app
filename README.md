@@ -4,7 +4,7 @@
 ## Overview
 HourWise is a polished, self-hosted PHP time tracker for freelancers who want a simple, reliable way to see where their time goes.
 
-Core features:
+**Core features:**
 - User authentication (register/login/logout)
 - Email verification for self-registered accounts
 - Optional two-factor authentication with recovery codes
@@ -18,7 +18,7 @@ Core features:
 - Account management (profile, avatar, password, delete account)
 - Per-user timezone support
 
-Security and operations features:
+**Security and operations features:**
 - External secrets loaded from `../secrets/*`, outside the web root
 - CSRF protection on state-changing POST actions
 - DB-backed login and password-reset throttling
@@ -93,9 +93,6 @@ The repository currently includes these SQL migrations:
   - `user_timezone_object()`
   - `formatLocalTime(...)`
   - `formatLocalTimeRecentEntries(...)`
-
-Migration used for this:
-- `migrations/2026-06-01_add_users_timezone.sql`
 
 ## Secrets Implementation
 Yes, this app uses external secrets files and does not store sensitive credentials in repo code.
@@ -189,7 +186,7 @@ Runtime logs are also stored outside the web root:
 ## Security Hardening Status
 See [SECURITY-HARDENING.md](SECURITY-HARDENING.md) for the working checklist and remaining release-readiness tasks.
 
-Current positive foundations:
+**Current positive foundations:**
 - Runtime credentials are loaded from `../secrets/*` instead of hardcoded in repo files.
 - PDO prepared statements are used throughout the main data access paths.
 - CSRF checks protect state-changing POST forms.
@@ -207,7 +204,7 @@ Current positive foundations:
 - Runtime avatar uploads are ignored by Git.
 - User-facing errors avoid raw exception details; app/audit logs are written outside the web root.
 
-Remaining operational work to track:
+**Remaining operational work to track:**
 - Add CI checks for PHP syntax linting once PHP is available in the build environment.
 - Document supported PHP and MySQL versions.
 - Confirm backup automation and test restore.
