@@ -19,12 +19,14 @@ $allowRegistration = (bool)($config['app']['allow_registration'] ?? false);
 $appSecretPath = __DIR__ . '/../secrets/app_secret.php';
 $appSecret = is_file($appSecretPath) ? (require $appSecretPath) : [];
 
-function admin_ini_enabled(string $name): bool {
+function admin_ini_enabled(string $name): bool
+{
     $value = strtolower((string)ini_get($name));
     return in_array($value, ['1', 'on', 'true', 'yes'], true);
 }
 
-function admin_path_is_outside_web_root(string $path): bool {
+function admin_path_is_outside_web_root(string $path): bool
+{
     $webRoot = realpath(__DIR__);
     $target = realpath($path) ?: realpath(dirname($path));
     if ($webRoot === false || $target === false) {
@@ -34,7 +36,8 @@ function admin_path_is_outside_web_root(string $path): bool {
     return !str_starts_with($target, $webRoot . DIRECTORY_SEPARATOR) && $target !== $webRoot;
 }
 
-function admin_log_target_writable(string $path): bool {
+function admin_log_target_writable(string $path): bool
+{
     $dir = is_dir($path) ? $path : dirname($path);
     if (is_dir($dir)) {
         return is_writable($dir);
@@ -44,7 +47,8 @@ function admin_log_target_writable(string $path): bool {
     return is_dir($parent) && is_writable($parent);
 }
 
-function admin_diagnostic_row(string $label, string $value, bool $ok, string $recommendation): array {
+function admin_diagnostic_row(string $label, string $value, bool $ok, string $recommendation): array
+{
     return [
         'label' => $label,
         'value' => $value,
@@ -178,7 +182,7 @@ $diagnostics = [
     ),
 ];
 
-include __DIR__ . '/header.php';
+include __DIR__ . '/header.php'; 
 ?>
 <h1 class="mb-4">Admin Settings</h1>
 
@@ -190,43 +194,6 @@ include __DIR__ . '/header.php';
 <?php endforeach; ?>
 
 <div class="card p-4 mb-4">
-    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
-        <div>
-            <h2 class="h5 mb-1">Diagnostics</h2>
-            <p class="text-muted mb-0">Read-only production checks for error handling, logging, and session safety.</p>
-        </div>
-        <span class="badge text-bg-secondary align-self-start">Admin only</span>
-    </div>
-
-    <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    <th scope="col">Setting</th>
-                    <th scope="col">Current</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Recommendation</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($diagnostics as $diagnostic): ?>
-                    <tr>
-                        <th scope="row"><?= h($diagnostic['label']) ?></th>
-                        <td><?= h($diagnostic['value']) ?></td>
-                        <td>
-                            <span class="badge <?= $diagnostic['ok'] ? 'text-bg-success' : 'text-bg-warning' ?>">
-                                <?= $diagnostic['ok'] ? 'OK' : 'Review' ?>
-                            </span>
-                        </td>
-                        <td><?= h($diagnostic['recommendation']) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="card p-4">
     <h2 class="h5 mb-3">Registration Access</h2>
     <p class="text-muted">Only the first user account (admin) can access and change this setting.</p>
     <form method="post" class="mb-4">
@@ -239,8 +206,7 @@ include __DIR__ . '/header.php';
                 id="allow_registration"
                 name="allow_registration"
                 value="1"
-                <?= $allowRegistration ? 'checked' : '' ?>
-            >
+                <?= $allowRegistration ? 'checked' : '' ?>>
             <label class="form-check-label" for="allow_registration">
                 Allow new users to register accounts
             </label>
@@ -282,8 +248,7 @@ include __DIR__ . '/header.php';
                 name="password"
                 type="password"
                 class="form-control"
-                placeholder="<?= $hasExistingSmtpPassword ? 'Leave blank to keep existing SMTP password' : 'Enter SMTP password' ?>"
-            >
+                placeholder="<?= $hasExistingSmtpPassword ? 'Leave blank to keep existing SMTP password' : 'Enter SMTP password' ?>">
         </div>
         <div class="col-md-6">
             <label class="form-label" for="from_email">From Email</label>
@@ -294,6 +259,42 @@ include __DIR__ . '/header.php';
             <button type="submit" class="btn btn-primary">Save Mail Settings</button>
         </div>
     </form>
+</div>
+
+<div class="card p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+        <div>
+            <h2 class="h5 mb-1">Diagnostics</h2>
+            <p class="text-muted mb-0">Read-only production checks for error handling, logging, and session safety.</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Setting</th>
+                    <th scope="col">Current</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Recommendation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($diagnostics as $diagnostic): ?>
+                    <tr>
+                        <th scope="row"><?= h($diagnostic['label']) ?></th>
+                        <td><?= h($diagnostic['value']) ?></td>
+                        <td>
+                            <span class="badge <?= $diagnostic['ok'] ? 'text-bg-success' : 'text-bg-warning' ?>">
+                                <?= $diagnostic['ok'] ? 'OK' : 'Review' ?>
+                            </span>
+                        </td>
+                        <td><?= h($diagnostic['recommendation']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <?php include __DIR__ . '/footer.php'; ?>
