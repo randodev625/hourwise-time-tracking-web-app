@@ -2,7 +2,7 @@
 ![HourWise Social Card](assets/img/hourwise-social-card.jpg)
 
 ## Overview
-This is a server-rendered PHP time-tracking app for freelancers/small teams.
+This is a server-rendered PHP time-tracking app for freelancers.
 
 Core features:
 - User authentication (register/login/logout)
@@ -30,7 +30,7 @@ Security and operations features:
 - Application and audit logs written outside the web root
 
 ## Tech Stack
-- PHP (plain PHP pages, no framework)
+- PHP 8.3, 8.4, and 8.5 compatible (plain PHP pages, no framework)
 - MySQL (via PDO)
 - Bootstrap 5 (self-hosted vendor files)
 - Font Awesome (self-hosted vendor files)
@@ -51,7 +51,15 @@ Security and operations features:
 - `account.php`: profile, timezone, password, avatar, delete account modal.
 - `admin_settings.php`: admin-only mail, registration, and diagnostics view.
 - `setup.php`: first-run setup wizard.
-- `migrations/*.sql`: schema changes, including timezone support and auth rate limits.
+- `migrations/*.sql`: schema changes and incremental feature/security updates.
+
+## Migration Overview
+The repository currently includes these SQL migrations:
+- `migrations/0001_initial_schema.sql`: creates the core tables for users, clients, projects, categories, time records, password reset tokens, and legacy compatibility tables.
+- `migrations/2026-06-01_add_users_timezone.sql`: adds the per-user timezone column.
+- `migrations/2026-06-02_add_email_verification.sql`: adds email verification support and the token table.
+- `migrations/2026-06-02_add_two_factor_auth.sql`: adds the two-factor auth table.
+- `migrations/2026-06-02_add_auth_rate_limits.sql`: adds the auth rate limiting table used by login, password reset, and 2FA flows.
 
 ## Request Flow
 1. Page includes `middleware.php`.
@@ -198,6 +206,7 @@ Remaining operational work to track:
 ## Deployment Notes
 - For Apache/LiteSpeed, the root `.htaccess` provides baseline security headers and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.
 - Other hosts, such as Nginx, Caddy, or CDN-fronted deployments, must configure equivalent headers and upload protections in their own server layer.
+- The database bootstrap uses a version-aware PDO MySQL init-command option so the app runs cleanly on PHP 8.3, 8.4, and 8.5.
 - `Strict-Transport-Security` is intentionally not enabled in the repository `.htaccess`; configure HSTS only after confirming HTTPS coverage for the production domain.
 - Keep `display_errors` and `expose_php` disabled in production.
 - Keep host/server logs and app logs outside the web root.
