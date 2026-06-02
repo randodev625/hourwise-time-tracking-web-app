@@ -68,7 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             create_default_user_workspace($pdo, $newUserId);
 
             $pdo->commit();
-            header('Location: /auth/login.php?registered=1');
+            try {
+                send_account_verification_for_user($pdo, $newUserId);
+                audit_log('email_verification_requested', ['registered_user_id' => $newUserId]);
+            } catch (Throwable $e) {
+                log_exception($e, 'Registration verification email failed.', ['registered_user_id' => $newUserId]);
+            }
+
+            header('Location: /auth/login.php?registered=verify');
             exit;
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {

@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$err) {
-        $stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone, password_hash FROM users WHERE email=?');
+        $stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone, password_hash, email_verified_at FROM users WHERE email=?');
         $stmt->execute([$email]);
         $u = $stmt->fetch();
 
@@ -27,6 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             auth_rate_limit_record_attempt($pdo, 'login', $email);
             audit_log('login_failed', ['email_hash' => hash('sha256', strtolower($email))]);
             $err = 'Invalid credentials.';
+        } elseif (empty($u['email_verified_at'])) {
+            auth_rate_limit_clear($pdo, 'login', $email);
+            audit_log('login_unverified_email', ['user_id' => (int)$u['id']]);
+            $err = 'Please verify your email address before signing in. You can request a new verification email below.';
         } else {
             auth_rate_limit_clear($pdo, 'login', $email);
 
@@ -76,8 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <h2 class="card-title auth-form-title">Login</h2>
 
-                <?php if (isset($_GET['registered'])): ?>
+                <?php if (isset($_GET['registered']) && $_GET['registered'] === 'verify'): ?>
+                    <div class="alert alert-success small">Registration successful. Check your email to verify your account before signing in.</div>
+                <?php elseif (isset($_GET['registered'])): ?>
                     <div class="alert alert-success small">Registration successful. Please log in.</div>
+                <?php endif; ?>
+
+                <?php if (isset($_GET['verified'])): ?>
+                    <div class="alert alert-success small">Email verified. You can sign in now.</div>
                 <?php endif; ?>
 
                 <?php if (isset($_GET['reset'])): ?>
@@ -103,7 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <button class="btn btn-primary" type="submit">Sign In</button>
-                        <a class="small" href="/auth/forgot_password.php">Forgot password?</a>
+                        <span class="d-flex flex-column align-items-end gap-1">
+                            <a class="small" href="/auth/forgot_password.php">Forgot password?</a>
+                            <a class="small" href="/auth/resend_verification.php">Resend verification email</a>
+                        </span>
                     </div>
                 </form>
 

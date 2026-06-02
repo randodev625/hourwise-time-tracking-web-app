@@ -84,14 +84,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!$errors) {
-                    $pdo->prepare('UPDATE users SET display_name = ?, email = ?, timezone = ? WHERE id = ?')
-                        ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
+                    if ($emailChanged) {
+                        $pdo->prepare('UPDATE users SET display_name = ?, email = ?, timezone = ?, email_verified_at = NULL WHERE id = ?')
+                            ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
+                    } else {
+                        $pdo->prepare('UPDATE users SET display_name = ?, email = ?, timezone = ? WHERE id = ?')
+                            ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
+                    }
                     $user = load_user($pdo, $userId);
                     set_user_session($user);
                     if ($emailChanged) {
                         refresh_session_security();
+                        try {
+                            send_account_verification_for_user($pdo, (int)$userId);
+                            audit_log('email_verification_requested', ['user_id' => (int)$userId, 'reason' => 'email_change']);
+                            $messages[] = 'Profile updated successfully. Check your new email address to verify it before your next sign-in.';
+                        } catch (Throwable $e) {
+                            log_exception($e, 'Email change verification email failed.', ['user_id' => (int)$userId]);
+                            $messages[] = 'Profile updated successfully, but the verification email could not be sent right now. Use the resend verification link before your next sign-in.';
+                        }
+                    } else {
+                        $messages[] = 'Profile updated successfully.';
                     }
-                    $messages[] = 'Profile updated successfully.';
                 }
             }
 

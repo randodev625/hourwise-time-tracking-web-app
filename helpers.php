@@ -245,6 +245,11 @@ function auth_rate_limit_policy(string $action): array {
             'window_minutes' => 60,
             'lock_minutes' => 60,
         ],
+        'email_verification' => [
+            'max_attempts' => 5,
+            'window_minutes' => 60,
+            'lock_minutes' => 60,
+        ],
         default => [
             'max_attempts' => 10,
             'window_minutes' => 15,
@@ -672,12 +677,165 @@ function password_reset_expires_minutes(): int {
     return $minutes > 0 ? $minutes : 60;
 }
 
+function email_verification_expires_minutes(): int {
+    $cfg = require __DIR__ . '/config.php';
+    $minutes = (int)($cfg['auth']['email_verification_expires_minutes'] ?? 1440);
+    return $minutes > 0 ? $minutes : 1440;
+}
+
 function invalidate_password_reset_tokens(PDO $pdo, int $userId): void {
     if ($userId <= 0) {
         return;
     }
 
     $pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = ?')->execute([$userId]);
+}
+
+function issue_email_verification_token(PDO $pdo, int $userId): string {
+    if ($userId <= 0) {
+        throw new InvalidArgumentException('Invalid user id.');
+    }
+
+    $rawToken = token64();
+    $tokenHash = hash('sha256', $rawToken);
+    $expiresAt = (new DateTime('now', new DateTimeZone('UTC')))
+        ->modify('+' . email_verification_expires_minutes() . ' minutes')
+        ->format('Y-m-d H:i:s');
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('DELETE FROM email_verification_tokens WHERE user_id = ?')->execute([$userId]);
+        $insert = $pdo->prepare('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)');
+        $insert->execute([$userId, $tokenHash, $expiresAt]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    return $rawToken;
+}
+
+function send_account_verification_email(string $toEmail, string $displayName, string $verificationUrl): void {
+    tt_require_phpmailer();
+
+    $mailConfig = tt_mail_config();
+    if (($mailConfig['host'] ?? '') === '' || ($mailConfig['username'] ?? '') === '' || ($mailConfig['from_email'] ?? '') === '') {
+        throw new RuntimeException('Mail settings are incomplete.');
+    }
+
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = (string)$mailConfig['host'];
+    $mail->SMTPAuth = true;
+    $mail->Username = (string)$mailConfig['username'];
+    $mail->Password = (string)($mailConfig['password'] ?? '');
+
+    if (($mailConfig['encryption'] ?? 'ssl') === 'tls') {
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    } else {
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+    }
+
+    $mail->Port = (int)($mailConfig['port'] ?? 465);
+    $mail->CharSet = 'UTF-8';
+    $mail->setFrom((string)$mailConfig['from_email'], (string)($mailConfig['from_name'] ?? 'Time Tracker'));
+    $mail->addAddress($toEmail, trim($displayName) !== '' ? $displayName : $toEmail);
+    $mail->isHTML(true);
+    $mail->Subject = 'Verify your Time Tracker email';
+
+    $safeUrl = h($verificationUrl);
+    $safeName = h(trim($displayName) !== '' ? $displayName : 'there');
+    $expiresHours = max(1, (int)ceil(email_verification_expires_minutes() / 60));
+
+    $mail->Body = "
+        <html>
+          <body style=\"font-family: Arial, Helvetica, sans-serif; background-color: #f8f9fa; padding: 20px; color: #212529;\">
+            <div style=\"max-width: 600px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 10px; border: 1px solid #e9ecef;\">
+              <h2 style=\"margin-top: 0;\">Verify your email</h2>
+              <p>Hello {$safeName},</p>
+              <p>Thanks for creating a Time Tracker account. Verify your email address to finish setting up your account.</p>
+              <p style=\"margin: 28px 0;\">
+                <a href=\"{$safeUrl}\" style=\"display: inline-block; background: #0d6efd; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 6px;\">Verify Email</a>
+              </p>
+              <p>This link will expire in {$expiresHours} hours.</p>
+              <p>If you did not create this account, you can safely ignore this email.</p>
+              <hr style=\"border: 0; border-top: 1px solid #e9ecef; margin: 24px 0;\">
+              <p style=\"font-size: 12px; color: #6c757d; word-break: break-all;\">If the button does not work, copy and paste this URL into your browser:<br>{$safeUrl}</p>
+            </div>
+          </body>
+        </html>
+    ";
+
+    $mail->AltBody = "Verify your Time Tracker email\n\n" .
+        "Use the link below to verify your email address:\n{$verificationUrl}\n\n" .
+        "This link expires in {$expiresHours} hours. If you did not create this account, you can ignore this email.";
+
+    $mail->send();
+}
+
+function send_account_verification_for_user(PDO $pdo, int $userId): void {
+    $stmt = $pdo->prepare('SELECT id, email, display_name, email_verified_at FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$user || !empty($user['email_verified_at'])) {
+        return;
+    }
+
+    $rawToken = issue_email_verification_token($pdo, $userId);
+    $verificationUrl = base_url('/auth/verify_email.php?token=' . urlencode($rawToken));
+    send_account_verification_email((string)$user['email'], (string)($user['display_name'] ?? ''), $verificationUrl);
+}
+
+function verify_account_email(PDO $pdo, string $rawToken): bool {
+    $rawToken = trim($rawToken);
+    if ($rawToken === '' || !preg_match('/^[a-f0-9]{64}$/', $rawToken)) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $rawToken);
+    $stmt = $pdo->prepare(
+        'SELECT evt.id, evt.user_id, evt.expires_at, evt.used_at, u.email_verified_at
+         FROM email_verification_tokens evt
+         INNER JOIN users u ON u.id = evt.user_id
+         WHERE evt.token_hash = ?
+         LIMIT 1'
+    );
+    $stmt->execute([$tokenHash]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row || !empty($row['used_at'])) {
+        return false;
+    }
+    if (!empty($row['email_verified_at'])) {
+        return true;
+    }
+
+    $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
+    $expiresUtc = new DateTime($row['expires_at'], new DateTimeZone('UTC'));
+    if ($expiresUtc < $nowUtc) {
+        return false;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE users SET email_verified_at = CURRENT_TIMESTAMP(), updated_at = CURRENT_TIMESTAMP() WHERE id = ?')
+            ->execute([(int)$row['user_id']]);
+        $pdo->prepare('UPDATE email_verification_tokens SET used_at = CURRENT_TIMESTAMP() WHERE id = ?')
+            ->execute([(int)$row['id']]);
+        $pdo->prepare('DELETE FROM email_verification_tokens WHERE user_id = ? AND id <> ?')
+            ->execute([(int)$row['user_id'], (int)$row['id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    audit_log('email_verified', ['verified_user_id' => (int)$row['user_id']]);
+    return true;
 }
 
 function issue_password_reset_token(PDO $pdo, string $email): void {

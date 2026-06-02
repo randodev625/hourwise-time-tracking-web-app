@@ -11,6 +11,7 @@ This is a server-rendered PHP time-tracking app for freelancers/small teams.
 
 Core features:
 - User authentication (register/login/logout)
+- Email verification for self-registered accounts
 - Password reset by email (PHPMailer; SMTP optional but recommended)
 - First-run browser setup for database, SMTP, app settings, migrations, and initial admin account
 - Admin settings (admin-only): SMTP config, registration access toggle, and read-only diagnostics
@@ -25,6 +26,7 @@ Security and operations features:
 - External secrets loaded from `../secrets/*`, outside the web root
 - CSRF protection on state-changing POST actions
 - DB-backed login and password-reset throttling
+- Hashed email-verification and password-reset tokens
 - Session ID and CSRF token rotation after sensitive auth/account events
 - Apache/LiteSpeed security header defaults in `.htaccess`
 - Avatar upload validation and upload-directory execution protections
@@ -70,6 +72,7 @@ Security and operations features:
 - `work_categories`
 - `time_records`
 - `password_reset_tokens`
+- `email_verification_tokens`
 - `auth_rate_limits`
 - legacy/optional tables referenced by code: `jobs`, `report_links`
 
@@ -148,9 +151,11 @@ Current positive foundations:
 - CSRF checks protect state-changing POST forms.
 - Request-controlled redirects are constrained to known local app paths.
 - Login and forgot-password flows use persistent DB-backed rate limiting.
+- Self-registered accounts must verify their email address before login.
 - Session cookies use `HttpOnly` and `SameSite=Lax`; production should keep `APP_SESSION_SECURE = true`.
 - Session IDs and CSRF tokens rotate after login, first-run setup login, password change, email change, and account deletion.
 - Password reset tokens are stored as hashes.
+- Email verification tokens are stored as hashes.
 - Password reset tokens are invalidated after password changes.
 - Apache/LiteSpeed `.htaccess` defaults provide baseline security headers where supported.
 - Uploaded avatars use server-side MIME checks, image decode checks, dimension limits, randomized filenames, and non-executable permissions.
@@ -188,6 +193,7 @@ Remaining operational work to track:
   - Global registration toggle (`allow_registration`)
   - Read-only diagnostics for error display, PHP logging, `expose_php`, app/audit log writability, and secure session cookies
 - When registration is disabled, `/auth/register.php` redirects to login and registration links are hidden.
+- When registration is enabled, new self-registered accounts must verify their email before login. Configure SMTP first so verification emails can be delivered.
 
 ## Deployment Notes
 - For Apache/LiteSpeed, the root `.htaccess` provides baseline security headers and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.

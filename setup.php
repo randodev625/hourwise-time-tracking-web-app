@@ -253,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         $pdo->beginTransaction();
                         $stmt = $pdo->prepare(
-                            'INSERT INTO users (email, display_name, password_hash, timezone) VALUES (?, ?, ?, ?)'
+                            'INSERT INTO users (email, display_name, password_hash, timezone, email_verified_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())'
                         );
                         $stmt->execute([$email, $displayName, $hash, $timezone]);
                         $newUserId = (int)$pdo->lastInsertId();
