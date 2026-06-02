@@ -2,7 +2,7 @@
 ![HourWise Social Card](assets/img/hourwise-social-card.jpg)
 
 ## Overview
-This is a server-rendered PHP time-tracking app for freelancers.
+HourWise is a polished, self-hosted PHP time tracker for freelancers who want a simple, reliable way to see where their time goes.
 
 Core features:
 - User authentication (register/login/logout)
