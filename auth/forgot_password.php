@@ -15,8 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim((string)($_POST['email'] ?? ''));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $err = 'Please enter a valid email address.';
+        } elseif (auth_rate_limit_status($pdo, 'password_reset', $email)['limited']) {
+            $sent = true;
         } else {
             try {
+                auth_rate_limit_record_attempt($pdo, 'password_reset', $email);
                 issue_password_reset_token($pdo, $email);
                 $sent = true;
             } catch (Throwable $e) {

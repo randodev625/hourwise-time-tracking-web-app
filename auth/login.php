@@ -14,15 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $now = time();
-    $key = 'login_attempts_' . sha1($email . '|' . ($_SERVER['REMOTE_ADDR'] ?? ''));
-    $_SESSION[$key] = $_SESSION[$key] ?? ['count' => 0, 'ts' => $now];
-
-    if ($now - $_SESSION[$key]['ts'] > 900) {
-        $_SESSION[$key] = ['count' => 0, 'ts' => $now];
-    }
-
-    if ($_SESSION[$key]['count'] > 10) {
+    if (!$err && auth_rate_limit_status($pdo, 'login', $email)['limited']) {
         $err = 'Too many attempts. Please try again later.';
     }
 
@@ -32,9 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $u = $stmt->fetch();
 
         if (!$u || !password_verify($password, $u['password_hash'])) {
-            $_SESSION[$key]['count'] += 1;
+            auth_rate_limit_record_attempt($pdo, 'login', $email);
             $err = 'Invalid credentials.';
         } else {
+            auth_rate_limit_clear($pdo, 'login', $email);
+
             if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
                 $new = password_hash($password, PASSWORD_DEFAULT);
                 $pdo->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([$new, $u['id']]);

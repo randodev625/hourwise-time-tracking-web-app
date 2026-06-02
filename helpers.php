@@ -124,6 +124,154 @@ function add_query_arg(string $path, string $key, string $value): string {
     return $path . $separator . rawurlencode($key) . '=' . rawurlencode($value);
 }
 
+function client_ip_address(): string {
+    $ip = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    return $ip !== '' ? $ip : 'unknown';
+}
+
+function auth_rate_limit_policy(string $action): array {
+    return match ($action) {
+        'login' => [
+            'max_attempts' => 10,
+            'window_minutes' => 15,
+            'lock_minutes' => 15,
+        ],
+        'password_reset' => [
+            'max_attempts' => 5,
+            'window_minutes' => 60,
+            'lock_minutes' => 60,
+        ],
+        default => [
+            'max_attempts' => 10,
+            'window_minutes' => 15,
+            'lock_minutes' => 15,
+        ],
+    };
+}
+
+function auth_rate_limit_table_ready(PDO $pdo): bool {
+    static $ready = null;
+    if ($ready === null) {
+        $ready = table_exists($pdo, 'auth_rate_limits');
+    }
+    return $ready;
+}
+
+function auth_rate_limit_keys(string $subject): array {
+    $subject = strtolower(trim($subject));
+    return [
+        hash('sha256', $subject),
+        hash('sha256', client_ip_address()),
+    ];
+}
+
+function auth_rate_limit_status(PDO $pdo, string $action, string $subject): array {
+    if (!auth_rate_limit_table_ready($pdo)) {
+        return ['limited' => false, 'available' => false];
+    }
+
+    [$subjectHash, $ipHash] = auth_rate_limit_keys($subject);
+    $stmt = $pdo->prepare(
+        'SELECT attempts, first_attempt_at, locked_until
+         FROM auth_rate_limits
+         WHERE action = ? AND subject_hash = ? AND ip_hash = ?
+         LIMIT 1'
+    );
+    $stmt->execute([$action, $subjectHash, $ipHash]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return ['limited' => false, 'available' => true];
+    }
+
+    $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    if (!empty($row['locked_until'])) {
+        $lockedUntil = new DateTimeImmutable($row['locked_until'], new DateTimeZone('UTC'));
+        if ($lockedUntil > $now) {
+            return [
+                'limited' => true,
+                'available' => true,
+                'locked_until' => $lockedUntil,
+            ];
+        }
+    }
+
+    $policy = auth_rate_limit_policy($action);
+    $firstAttemptAt = new DateTimeImmutable($row['first_attempt_at'], new DateTimeZone('UTC'));
+    if ($firstAttemptAt->modify('+' . (int)$policy['window_minutes'] . ' minutes') <= $now) {
+        return ['limited' => false, 'available' => true];
+    }
+
+    return ['limited' => false, 'available' => true];
+}
+
+function auth_rate_limit_record_attempt(PDO $pdo, string $action, string $subject): void {
+    if (!auth_rate_limit_table_ready($pdo)) {
+        return;
+    }
+
+    [$subjectHash, $ipHash] = auth_rate_limit_keys($subject);
+    $policy = auth_rate_limit_policy($action);
+    $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    $nowSql = $now->format('Y-m-d H:i:s');
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT id, attempts, first_attempt_at
+             FROM auth_rate_limits
+             WHERE action = ? AND subject_hash = ? AND ip_hash = ?
+             LIMIT 1
+             FOR UPDATE'
+        );
+        $stmt->execute([$action, $subjectHash, $ipHash]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            $insert = $pdo->prepare(
+                'INSERT INTO auth_rate_limits
+                    (action, subject_hash, ip_hash, attempts, first_attempt_at, last_attempt_at, locked_until)
+                 VALUES (?, ?, ?, 1, ?, ?, NULL)'
+            );
+            $insert->execute([$action, $subjectHash, $ipHash, $nowSql, $nowSql]);
+            $pdo->commit();
+            return;
+        }
+
+        $firstAttemptAt = new DateTimeImmutable($row['first_attempt_at'], new DateTimeZone('UTC'));
+        $windowExpired = $firstAttemptAt->modify('+' . (int)$policy['window_minutes'] . ' minutes') <= $now;
+        $attempts = $windowExpired ? 1 : ((int)$row['attempts'] + 1);
+        $firstAttemptSql = $windowExpired ? $nowSql : $row['first_attempt_at'];
+        $lockedUntilSql = null;
+
+        if ($attempts >= (int)$policy['max_attempts']) {
+            $lockedUntilSql = $now->modify('+' . (int)$policy['lock_minutes'] . ' minutes')->format('Y-m-d H:i:s');
+        }
+
+        $update = $pdo->prepare(
+            'UPDATE auth_rate_limits
+             SET attempts = ?, first_attempt_at = ?, last_attempt_at = ?, locked_until = ?
+             WHERE id = ?'
+        );
+        $update->execute([$attempts, $firstAttemptSql, $nowSql, $lockedUntilSql, (int)$row['id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+}
+
+function auth_rate_limit_clear(PDO $pdo, string $action, string $subject): void {
+    if (!auth_rate_limit_table_ready($pdo)) {
+        return;
+    }
+
+    [$subjectHash, $ipHash] = auth_rate_limit_keys($subject);
+    $stmt = $pdo->prepare('DELETE FROM auth_rate_limits WHERE action = ? AND subject_hash = ? AND ip_hash = ?');
+    $stmt->execute([$action, $subjectHash, $ipHash]);
+}
+
 function iso_datetime(string $dt): string { return date('Y-m-d H:i:s', strtotime($dt)); }
 
 function week_bounds(DateTime $ref): array {
