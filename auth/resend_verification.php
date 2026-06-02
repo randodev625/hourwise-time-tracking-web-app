@@ -20,13 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             auth_rate_limit_record_attempt($pdo, 'email_verification', $email);
-            $stmt = $pdo->prepare('SELECT id, email_verified_at FROM users WHERE email = ? LIMIT 1');
-            $stmt->execute([$email]);
+            $stmt = $pdo->prepare('
+                SELECT id, email_verified_at, pending_email
+                FROM users
+                WHERE email = ? OR pending_email = ?
+                ORDER BY CASE WHEN email = ? THEN 0 ELSE 1 END
+                LIMIT 1
+            ');
+            $stmt->execute([$email, $email, $email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user && empty($user['email_verified_at'])) {
+            if ($user && (empty($user['email_verified_at']) || !empty($user['pending_email']))) {
                 send_account_verification_for_user($pdo, (int)$user['id']);
                 audit_log('email_verification_requested', ['user_id' => (int)$user['id']]);
+            } elseif ($user) {
+                send_account_verification_for_user($pdo, (int)$user['id']);
             }
 
             $sent = true;

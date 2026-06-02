@@ -980,16 +980,24 @@ function send_account_verification_email(string $toEmail, string $displayName, s
 }
 
 function send_account_verification_for_user(PDO $pdo, int $userId): void {
-    $stmt = $pdo->prepare('SELECT id, email, display_name, email_verified_at FROM users WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, email, pending_email, display_name, email_verified_at FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$user || !empty($user['email_verified_at'])) {
+    if (!$user) {
         return;
+    }
+
+    $targetEmail = trim((string)($user['pending_email'] ?? ''));
+    if ($targetEmail === '' && !empty($user['email_verified_at'])) {
+        return;
+    }
+    if ($targetEmail === '') {
+        $targetEmail = (string)($user['email'] ?? '');
     }
 
     $rawToken = issue_email_verification_token($pdo, $userId);
     $verificationUrl = base_url('/auth/verify_email.php?token=' . urlencode($rawToken));
-    send_account_verification_email((string)$user['email'], (string)($user['display_name'] ?? ''), $verificationUrl);
+    send_account_verification_email($targetEmail, (string)($user['display_name'] ?? ''), $verificationUrl);
 }
 
 function verify_account_email(PDO $pdo, string $rawToken): bool {
@@ -1000,7 +1008,7 @@ function verify_account_email(PDO $pdo, string $rawToken): bool {
 
     $tokenHash = hash('sha256', $rawToken);
     $stmt = $pdo->prepare(
-        'SELECT evt.id, evt.user_id, evt.expires_at, evt.used_at, u.email_verified_at
+        'SELECT evt.id, evt.user_id, evt.expires_at, evt.used_at, u.email_verified_at, u.pending_email
          FROM email_verification_tokens evt
          INNER JOIN users u ON u.id = evt.user_id
          WHERE evt.token_hash = ?
@@ -1011,7 +1019,8 @@ function verify_account_email(PDO $pdo, string $rawToken): bool {
     if (!$row || !empty($row['used_at'])) {
         return false;
     }
-    if (!empty($row['email_verified_at'])) {
+    $pendingEmail = trim((string)($row['pending_email'] ?? ''));
+    if ($pendingEmail === '' && !empty($row['email_verified_at'])) {
         return true;
     }
 
@@ -1023,8 +1032,19 @@ function verify_account_email(PDO $pdo, string $rawToken): bool {
 
     $pdo->beginTransaction();
     try {
-        $pdo->prepare('UPDATE users SET email_verified_at = CURRENT_TIMESTAMP(), updated_at = CURRENT_TIMESTAMP() WHERE id = ?')
-            ->execute([(int)$row['user_id']]);
+        if ($pendingEmail !== '') {
+            $pdo->prepare('
+                UPDATE users
+                SET email = ?,
+                    pending_email = NULL,
+                    email_verified_at = CURRENT_TIMESTAMP(),
+                    updated_at = CURRENT_TIMESTAMP()
+                WHERE id = ?
+            ')->execute([$pendingEmail, (int)$row['user_id']]);
+        } else {
+            $pdo->prepare('UPDATE users SET email_verified_at = CURRENT_TIMESTAMP(), updated_at = CURRENT_TIMESTAMP() WHERE id = ?')
+                ->execute([(int)$row['user_id']]);
+        }
         $pdo->prepare('UPDATE email_verification_tokens SET used_at = CURRENT_TIMESTAMP() WHERE id = ?')
             ->execute([(int)$row['id']]);
         $pdo->prepare('DELETE FROM email_verification_tokens WHERE user_id = ? AND id <> ?')

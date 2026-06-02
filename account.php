@@ -5,7 +5,7 @@ require_login();
 $userId = user_id();
 $page_title = 'Manage Account';
 
-$stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone FROM users WHERE id = ? LIMIT 1');
+$stmt = $pdo->prepare('SELECT id, email, pending_email, display_name, avatar_path, timezone FROM users WHERE id = ? LIMIT 1');
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 if (!$user) {
@@ -18,7 +18,7 @@ $errors = [];
 $newRecoveryCodes = [];
 
 function load_user(PDO $pdo, int $userId): array {
-    $stmt = $pdo->prepare('SELECT id, email, display_name, avatar_path, timezone, password_hash FROM users WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, email, pending_email, display_name, avatar_path, timezone, password_hash FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$userId]);
     $row = $stmt->fetch();
     if (!$row) {
@@ -89,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $errors[] = 'Enter your current password to change your email address.';
                     }
 
-                    $check = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
-                    $check->execute([$email, $userId]);
+                    $check = $pdo->prepare('SELECT id FROM users WHERE (email = ? OR pending_email = ?) AND id <> ? LIMIT 1');
+                    $check->execute([$email, $email, $userId]);
                     if ($check->fetch()) {
                         $errors[] = 'That email address is already in use.';
                     }
@@ -98,11 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$errors) {
                     if ($emailChanged) {
-                        $pdo->prepare('UPDATE users SET display_name = ?, email = ?, timezone = ?, email_verified_at = NULL WHERE id = ?')
-                            ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
+                        $pdo->prepare('UPDATE users SET display_name = ?, timezone = ?, pending_email = ? WHERE id = ?')
+                            ->execute([$displayName !== '' ? $displayName : null, $timezone, $email, $userId]);
                     } else {
-                        $pdo->prepare('UPDATE users SET display_name = ?, email = ?, timezone = ? WHERE id = ?')
-                            ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
+                        $pdo->prepare('UPDATE users SET display_name = ?, timezone = ? WHERE id = ?')
+                            ->execute([$displayName !== '' ? $displayName : null, $timezone, $userId]);
                     }
                     $user = load_user($pdo, $userId);
                     set_user_session($user);
@@ -111,10 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         try {
                             send_account_verification_for_user($pdo, (int)$userId);
                             audit_log('email_verification_requested', ['user_id' => (int)$userId, 'reason' => 'email_change']);
-                            $messages[] = 'Profile updated successfully. Check your new email address to verify it before your next sign-in.';
+                            $messages[] = 'Profile updated successfully. A verification link has been sent to your new email address. Your current login email stays active until you verify the change.';
                         } catch (Throwable $e) {
                             log_exception($e, 'Email change verification email failed.', ['user_id' => (int)$userId]);
-                            $messages[] = 'Profile updated successfully, but the verification email could not be sent right now. Use the resend verification link before your next sign-in.';
+                            $messages[] = 'Profile updated successfully. Your current login email stays active until you verify the change, but the verification email could not be sent right now. Use the resend verification link soon.';
                         }
                     } else {
                         $messages[] = 'Profile updated successfully.';
@@ -357,6 +357,13 @@ include __DIR__ . '/header.php';
 <?php foreach ($errors as $error): ?>
     <div class="alert alert-danger"><?= h($error) ?></div>
 <?php endforeach; ?>
+<?php if (!empty($user['pending_email'] ?? '')): ?>
+    <div class="alert alert-info">
+        Your login email is still <strong><?= h((string)$user['email']) ?></strong>.
+        A change to <strong><?= h((string)$user['pending_email']) ?></strong> is waiting for verification.
+        Check that inbox and click the verification link to complete the change.
+    </div>
+<?php endif; ?>
 <?php if (!empty($newRecoveryCodes)): ?>
     <div class="alert alert-warning">
         <strong>Save these recovery codes now.</strong>

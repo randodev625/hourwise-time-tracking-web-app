@@ -58,6 +58,7 @@ The repository currently includes these SQL migrations:
 - `migrations/0001_initial_schema.sql`: creates the core tables for users, clients, projects, categories, time records, password reset tokens, and legacy compatibility tables.
 - `migrations/2026-06-01_add_users_timezone.sql`: adds the per-user timezone column.
 - `migrations/2026-06-02_add_email_verification.sql`: adds email verification support and the token table.
+- `migrations/2026-06-02_add_pending_email_verification.sql`: adds pending-email support so address changes can be verified without locking out the old login email.
 - `migrations/2026-06-02_add_two_factor_auth.sql`: adds the two-factor auth table.
 - `migrations/2026-06-02_add_auth_rate_limits.sql`: adds the auth rate limiting table used by login, password reset, and 2FA flows.
 
@@ -72,7 +73,7 @@ The repository currently includes these SQL migrations:
 4. Page logic runs queries and renders HTML.
 
 ## Data Model (inferred from code)
-- `users` (includes `timezone`, `avatar_path`, password hash)
+- `users` (includes `timezone`, `avatar_path`, `pending_email`, password hash)
 - `clients`
 - `projects` (belongs to client + user)
 - `work_categories`
