@@ -7,7 +7,7 @@ require_login();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Complete - Time Tracker</title>
+    <title>Setup Complete - HourWise</title>
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -16,7 +16,7 @@ require_login();
     <div class="card shadow-sm p-4">
         <h1 class="h3 mb-3">Setup Complete</h1>
         <p class="mb-4">
-            Your Time Tracker installation is ready, and your admin account has been created successfully.
+            Your HourWise installation is ready, and your admin account has been created successfully.
         </p>
         <a href="/dashboard.php" class="btn btn-primary">Continue to Dashboard</a>
     </div>

@@ -1,5 +1,6 @@
 # OS / editor
 .DS_Store
+*.DS_Store
 Thumbs.db
 .vscode/
 .idea/
@@ -23,3 +24,6 @@ app_secret.php
 # Runtime uploads (keep directory, ignore files)
 uploads/avatars/*
 !uploads/avatars/.gitkeep
+
+# Developer Documentation
+SECURITY-HARDENING.md

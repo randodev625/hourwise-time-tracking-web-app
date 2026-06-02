@@ -35,7 +35,7 @@ return [
         'encryption' => ((int)($emailSecret['CRM_SMTP_PORT'] ?? 465) === 465) ? 'ssl' : 'tls',
 
         'from_email' => (string)($emailSecret['CRM_FROM_EMAIL'] ?? ''),
-        'from_name' => $emailSecret['CRM_FROM_NAME'] ?? 'Time Tracker',
+        'from_name' => $emailSecret['CRM_FROM_NAME'] ?? 'HourWise',
     ],
     'auth' => [
         'password_reset_expires_minutes' => 60,

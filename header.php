@@ -13,7 +13,7 @@ $is_account_active = in_array($current_page, ['account.php'], true);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? htmlspecialchars($page_title) . ' – James June Time Tracker' : 'Time Tracker' ?></title>
+    <title><?= isset($page_title) ? htmlspecialchars($page_title) . ' – James June HourWise' : 'HourWise' ?></title>
 
     <!-- Bootstrap CSS (self-hosted) -->
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
@@ -34,8 +34,7 @@ $is_account_active = in_array($current_page, ['account.php'], true);
     <nav class="navbar navbar-expand-lg navbar-light mb-5">
         <div class="container-fluid">
             <a class="navbar-brand me-3" href="/dashboard.php">
-                <img src="/assets/img/favicon_io/android-chrome-192x192.png" alt="James June Media Logo">
-                <h1 class="d-inline-block align-middle ms-2 mb-0">Time Tracker</h1>
+                <img src="/assets/img/hourwise-logo.jpg" alt="James June Media Logo">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

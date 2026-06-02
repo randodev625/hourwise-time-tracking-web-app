@@ -103,7 +103,7 @@ $smtpUser = trim((string)($_POST['smtp_user'] ?? ($config['mail']['username'] ??
 $smtpPass = (string)($_POST['smtp_pass'] ?? '');
 $smtpPort = (string)($_POST['smtp_port'] ?? (string)($config['mail']['port'] ?? 465));
 $fromEmail = trim((string)($_POST['from_email'] ?? ($config['mail']['from_email'] ?? '')));
-$fromName = trim((string)($_POST['from_name'] ?? ($config['mail']['from_name'] ?? 'Time Tracker')));
+$fromName = trim((string)($_POST['from_name'] ?? ($config['mail']['from_name'] ?? 'HourWise')));
 $baseUrlRaw = trim((string)($_POST['base_url'] ?? ($config['app']['base_url'] ?? '')));
 $baseUrl = rtrim($baseUrlRaw, '/');
 $appTimezone = trim((string)($_POST['app_timezone'] ?? ($config['app']['timezone'] ?? 'America/New_York')));
@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'CRM_SMTP_PASS' => $smtpPass,
                         'CRM_SMTP_PORT' => (int)($smtpPort !== '' ? $smtpPort : 465),
                         'CRM_FROM_EMAIL' => $fromEmail,
-                        'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'Time Tracker',
+                        'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'HourWise',
                     ]);
                     setup_write_php_array_file($appSecretsPath, [
                         'APP_BASE_URL' => $baseUrl,
@@ -298,7 +298,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Tracker Setup</title>
+    <title>HourWise Setup</title>
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
@@ -313,9 +313,9 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
 <body class="setup-page">
 <div class="container py-5" style="max-width: 860px;">
     <div class="setup-brand-hero mb-4 text-center">
-        <img src="/assets/img/time-tracker-logo.jpg" alt="Time Tracker by Jim Kulakowski" class="setup-brand-logo img-fluid">
+        <img src="/assets/img/hourwise-logo.jpg" alt="HourWise by Jim Kulakowski" class="setup-brand-logo img-fluid">
     </div>
-    <h1 class="mb-3">Time Tracker Setup</h1>
+    <h1 class="mb-3">HourWise Setup</h1>
     <?php if ($setupEnabled): ?>
         <div class="alert alert-warning">
             Setup override is enabled in config. Disable <code>config['setup']['enabled']</code> when not needed.

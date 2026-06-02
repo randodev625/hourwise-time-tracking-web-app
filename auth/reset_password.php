@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - Time Tracker</title>
+    <title>Reset Password - HourWise</title>
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 
@@ -60,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card auth-card shadow mx-auto">
             <div class="card-body">
                 <div class="auth-brand text-center pb-3">
-                    <img src="/assets/img/favicon_io/android-chrome-512x512.png" alt="Time Tracker Logo" class="auth-logo img-fluid">
-                    <h1 class="auth-title">Time Tracker</h1>
+                    <img src="/assets/img/favicon_io/android-chrome-512x512.png" alt="HourWise Logo" class="auth-logo img-fluid">
+                    <h1 class="auth-title">HourWise</h1>
                     <p class="auth-subtitle text-muted px-2">Choose a new password for your account.</p>
                 </div>
 

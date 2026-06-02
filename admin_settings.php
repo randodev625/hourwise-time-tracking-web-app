@@ -12,7 +12,7 @@ $username = trim((string)($mail['username'] ?? ''));
 $password = '';
 $port = (int)($mail['port'] ?? 465);
 $fromEmail = trim((string)($mail['from_email'] ?? ''));
-$fromName = trim((string)($mail['from_name'] ?? 'Time Tracker'));
+$fromName = trim((string)($mail['from_name'] ?? 'HourWise'));
 $hasExistingSmtpPassword = trim((string)($mail['password'] ?? '')) !== '';
 $allowRegistration = (bool)($config['app']['allow_registration'] ?? false);
 
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password = (string)($_POST['password'] ?? '');
             $port = (int)($_POST['port'] ?? 465);
             $fromEmail = trim((string)($_POST['from_email'] ?? ''));
-            $fromName = trim((string)($_POST['from_name'] ?? 'Time Tracker'));
+            $fromName = trim((string)($_POST['from_name'] ?? 'HourWise'));
 
             if ($host === '' || $username === '' || $fromEmail === '') {
                 $errors[] = 'Host, username, and from email are required.';
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'CRM_SMTP_PASS' => $password,
                         'CRM_SMTP_PORT' => $port,
                         'CRM_FROM_EMAIL' => $fromEmail,
-                        'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'Time Tracker',
+                        'CRM_FROM_NAME' => $fromName !== '' ? $fromName : 'HourWise',
                     ]);
                     $messages[] = 'Mail settings saved.';
                     audit_log('admin_mail_settings_updated');

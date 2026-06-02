@@ -20,7 +20,7 @@ return [
         'port' => 465,
         'encryption' => 'ssl',
         'from_email' => '',
-        'from_name' => 'Time Tracker',
+        'from_name' => 'HourWise',
     ],
     'auth' => [
         'password_reset_expires_minutes' => 60,

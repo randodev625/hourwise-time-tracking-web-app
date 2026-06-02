@@ -1,5 +1,14 @@
 /**------------------------------------------------------------------------*
  *
+ * Colors
+ *
+ * ------------------------------------------------------------------------*/
+:root {
+    --app-title-color: rgb(8 8 8 / 75%);
+}
+
+/**------------------------------------------------------------------------*
+ *
  * General styles
  *
  * ------------------------------------------------------------------------*/
@@ -36,6 +45,7 @@
 .auth-title {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
+    color: var(--app-title-color);
 }
 
 .auth-subtitle {
@@ -63,7 +73,7 @@
  * ------------------------------------------------------------------------*/
 .setup-page {
     min-height: 100vh;
-    background-image: url('/assets/img/time-tracker-background-graphic.jpg');
+    background-image: url('/assets/img/hourwise-background-graphic.jpg');
     background-size: contain;
     background-position: right bottom;
     background-repeat: no-repeat;
@@ -101,8 +111,9 @@
 }
 
 .navbar-brand h1 {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     margin-left: 0.5rem;
+    color: var(--app-title-color);
 }
 
 .navbar .dropdown-toggle:focus,
@@ -295,7 +306,7 @@
 
 .app-footer {
     position: relative;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url('/assets/img/time-tracker-background-graphic.jpg');
+    background-image: linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url('/assets/img/hourwise-background-graphic.jpg');
     background-size: cover;
     background-position: center;
 }

@@ -6,7 +6,7 @@ http_response_code(403);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Denied - Time Tracker</title>
+    <title>Access Denied - HourWise</title>
     <link href="/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 
@@ -22,14 +22,14 @@ http_response_code(403);
         <div class="card auth-card shadow mx-auto">
             <div class="card-body text-center">
                 <div class="auth-brand pb-3">
-                    <img src="/assets/img/favicon_io/android-chrome-512x512.png" alt="Time Tracker Logo" class="auth-logo img-fluid">
+                    <img src="/assets/img/favicon_io/android-chrome-512x512.png" alt="HourWise Logo" class="auth-logo img-fluid">
                     <h1 class="auth-title">Access Denied</h1>
                     <p class="auth-subtitle text-muted px-2">
                         You do not have permission to access this page.
                     </p>
                 </div>
 
-                <a href="/" class="btn btn-primary">Return to Time Tracker</a>
+                <a href="/" class="btn btn-primary">Return to HourWise</a>
             </div>
         </div>
     </main>

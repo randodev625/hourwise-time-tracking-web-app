@@ -1,6 +1,6 @@
-# Time Tracker App Guide
-![Time Tracker Social Card](assets/img/time-tracker-social-card.jpg)
-**Time Tracker by Jim Kulakowski**
+# HourWise App Guide
+![HourWise Social Card](assets/img/hourwise-social-card.jpg)
+**HourWise by Jim Kulakowski**
 
 > [!WARNING]
 > This repository is currently private while public-release hardening is being completed.
@@ -122,7 +122,7 @@ return [
   'CRM_SMTP_PASS' => '...',
   'CRM_SMTP_PORT' => 465,
   'CRM_FROM_EMAIL' => '...',
-  'CRM_FROM_NAME' => 'Time Tracker',
+  'CRM_FROM_NAME' => 'HourWise',
 ];
 ```
 
@@ -217,7 +217,7 @@ Remaining operational work to track:
 - When adding new user-scoped tables, include cleanup in `delete_user_account(...)`.
 
 ## License
-Time Tracker by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
+HourWise by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
 
 In plain language:
 - You may use this app for your own personal use or internal freelance business use (including self-hosting on your own server).

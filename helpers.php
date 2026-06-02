@@ -274,7 +274,7 @@ function two_factor_verify_code(string $secret, string $code, int $window = 1): 
 }
 
 function two_factor_otpauth_uri(string $secret, string $email): string {
-    $issuer = 'Time Tracker';
+    $issuer = 'Hourwise';
     $label = rawurlencode($issuer . ':' . $email);
     return 'otpauth://totp/' . $label
         . '?secret=' . rawurlencode($secret)
@@ -794,7 +794,7 @@ function tt_mail_config(): array {
     $mailConfig['password'] = (string)($mailConfig['password'] ?? '');
     $mailConfig['port'] = (int)($mailConfig['port'] ?? 465);
     $mailConfig['from_email'] = (string)($mailConfig['from_email'] ?? '');
-    $mailConfig['from_name'] = (string)($mailConfig['from_name'] ?? 'Time Tracker');
+    $mailConfig['from_name'] = (string)($mailConfig['from_name'] ?? 'Hourwise');
     $mailConfig['encryption'] = strtolower((string)($mailConfig['encryption'] ?? 'ssl'));
     $mailConfig['phpmailer_path'] = rtrim((string)($mailConfig['phpmailer_path'] ?? ''), '/');
 
@@ -924,10 +924,10 @@ function send_account_verification_email(string $toEmail, string $displayName, s
 
     $mail->Port = (int)($mailConfig['port'] ?? 465);
     $mail->CharSet = 'UTF-8';
-    $mail->setFrom((string)$mailConfig['from_email'], (string)($mailConfig['from_name'] ?? 'Time Tracker'));
+    $mail->setFrom((string)$mailConfig['from_email'], (string)($mailConfig['from_name'] ?? 'Hourwise'));
     $mail->addAddress($toEmail, trim($displayName) !== '' ? $displayName : $toEmail);
     $mail->isHTML(true);
-    $mail->Subject = 'Verify your Time Tracker email';
+    $mail->Subject = 'Verify your Hourwise email';
 
     $safeUrl = h($verificationUrl);
     $safeName = h(trim($displayName) !== '' ? $displayName : 'there');
@@ -939,7 +939,7 @@ function send_account_verification_email(string $toEmail, string $displayName, s
             <div style=\"max-width: 600px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 10px; border: 1px solid #e9ecef;\">
               <h2 style=\"margin-top: 0;\">Verify your email</h2>
               <p>Hello {$safeName},</p>
-              <p>Thanks for creating a Time Tracker account. Verify your email address to finish setting up your account.</p>
+              <p>Thanks for creating a Hourwise account. Verify your email address to finish setting up your account.</p>
               <p style=\"margin: 28px 0;\">
                 <a href=\"{$safeUrl}\" style=\"display: inline-block; background: #0d6efd; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 6px;\">Verify Email</a>
               </p>
@@ -952,7 +952,7 @@ function send_account_verification_email(string $toEmail, string $displayName, s
         </html>
     ";
 
-    $mail->AltBody = "Verify your Time Tracker email\n\n" .
+    $mail->AltBody = "Verify your Hourwise email\n\n" .
         "Use the link below to verify your email address:\n{$verificationUrl}\n\n" .
         "This link expires in {$expiresHours} hours. If you did not create this account, you can ignore this email.";
 
@@ -1139,10 +1139,10 @@ function send_password_reset_email(string $toEmail, string $displayName, string 
 
     $mail->Port = (int)($mailConfig['port'] ?? 465);
     $mail->CharSet = 'UTF-8';
-    $mail->setFrom((string)$mailConfig['from_email'], (string)($mailConfig['from_name'] ?? 'Time Tracker'));
+    $mail->setFrom((string)$mailConfig['from_email'], (string)($mailConfig['from_name'] ?? 'Hourwise'));
     $mail->addAddress($toEmail, trim($displayName) !== '' ? $displayName : $toEmail);
     $mail->isHTML(true);
-    $mail->Subject = 'Reset your Time Tracker password';
+    $mail->Subject = 'Reset your Hourwise password';
 
     $safeUrl = h($resetUrl);
     $safeName = h(trim($displayName) !== '' ? $displayName : 'there');
@@ -1154,7 +1154,7 @@ function send_password_reset_email(string $toEmail, string $displayName, string 
             <div style=\"max-width: 600px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 10px; border: 1px solid #e9ecef;\">
               <h2 style=\"margin-top: 0;\">Reset your password</h2>
               <p>Hello {$safeName},</p>
-              <p>We received a request to reset the password for your Time Tracker account.</p>
+              <p>We received a request to reset the password for your Hourwise account.</p>
               <p style=\"margin: 28px 0;\">
                 <a href=\"{$safeUrl}\" style=\"display: inline-block; background: #0d6efd; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 6px;\">Reset Password</a>
               </p>
@@ -1167,7 +1167,7 @@ function send_password_reset_email(string $toEmail, string $displayName, string 
         </html>
     ";
 
-    $mail->AltBody = "Reset your Time Tracker password\n\n" .
+    $mail->AltBody = "Reset your Hourwise password\n\n" .
         "Use the link below to reset your password:\n{$resetUrl}\n\n" .
         "This link expires in {$expires} minutes. If you did not request this, you can ignore this email.";
 
