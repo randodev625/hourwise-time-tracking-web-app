@@ -83,6 +83,21 @@ function csrf_check(): bool {
     return isset($_POST['csrf']) && hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']);
 }
 
+function rotate_csrf_token(): string {
+    unset($_SESSION['csrf']);
+    return csrf_token();
+}
+
+function refresh_session_security(): void {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    session_regenerate_id(true);
+    $_SESSION['__regenerated'] = time();
+    rotate_csrf_token();
+}
+
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 
 function safe_redirect_path(string $value, string $fallback = 'entries.php', array $allowedPaths = []): string {
@@ -441,8 +456,8 @@ function sanitizeFilename(string $s): string {
 
 
 function clear_auth_session(): void {
-    unset($_SESSION['user']);
-    session_regenerate_id(true);
+    $_SESSION = [];
+    refresh_session_security();
 }
 
 function is_admin_user(): bool {
@@ -568,6 +583,14 @@ function password_reset_expires_minutes(): int {
     return $minutes > 0 ? $minutes : 60;
 }
 
+function invalidate_password_reset_tokens(PDO $pdo, int $userId): void {
+    if ($userId <= 0) {
+        return;
+    }
+
+    $pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = ?')->execute([$userId]);
+}
+
 function issue_password_reset_token(PDO $pdo, string $email): void {
     $email = trim(strtolower($email));
     if ($email === '') {
@@ -589,7 +612,7 @@ function issue_password_reset_token(PDO $pdo, string $email): void {
 
     $pdo->beginTransaction();
     try {
-        $pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = ?')->execute([(int)$user['id']]);
+        invalidate_password_reset_tokens($pdo, (int)$user['id']);
         $insert = $pdo->prepare('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)');
         $insert->execute([(int)$user['id'], $tokenHash, $expiresAt]);
         $pdo->commit();

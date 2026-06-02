@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $email = trim($_POST['email'] ?? '');
                 $timezone = trim((string)($_POST['timezone'] ?? ''));
                 $currentPassword = $_POST['current_password_for_profile'] ?? '';
+                $emailChanged = $email !== $userWithPassword['email'];
 
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $errors[] = 'Please enter a valid email address.';
@@ -58,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Please select a valid timezone.';
                 }
 
-                if ($email !== $userWithPassword['email']) {
+                if ($emailChanged) {
                     if ($currentPassword === '' || !password_verify($currentPassword, $userWithPassword['password_hash'])) {
                         $errors[] = 'Enter your current password to change your email address.';
                     }
@@ -75,6 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ->execute([$displayName !== '' ? $displayName : null, $email, $timezone, $userId]);
                     $user = load_user($pdo, $userId);
                     set_user_session($user);
+                    if ($emailChanged) {
+                        refresh_session_security();
+                    }
                     $messages[] = 'Profile updated successfully.';
                 }
             }
@@ -97,7 +101,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$errors) {
                     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-                    $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $userId]);
+                    $pdo->beginTransaction();
+                    try {
+                        $pdo->prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP() WHERE id = ?')
+                            ->execute([$hash, $userId]);
+                        invalidate_password_reset_tokens($pdo, (int)$userId);
+                        $pdo->commit();
+                    } catch (Throwable $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        throw $e;
+                    }
+                    refresh_session_security();
                     $messages[] = 'Password updated successfully.';
                 }
             }

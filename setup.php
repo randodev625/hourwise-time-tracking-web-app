@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'avatar_path' => '',
                             'timezone' => $timezone,
                         ]);
-                        session_regenerate_id(true);
+                        refresh_session_security();
 
                         header('Location: /setup_complete.php');
                         exit;
@@ -360,7 +360,7 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
                 <label class="form-label" for="base_url">Base URL</label>
                 <input id="base_url" name="base_url" class="form-control" required value="<?= h($baseUrl) ?>" placeholder="https://time.example.com">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label" for="app_timezone">Default Timezone</label>
                 <select id="app_timezone" name="app_timezone" class="form-select" required>
                     <?php foreach (DateTimeZone::listIdentifiers() as $tz): ?>
@@ -368,10 +368,13 @@ if ($pdo && table_exists($pdo, 'schema_migrations')) {
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-12">
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="session_secure" name="session_secure" value="1" <?= $sessionSecure ? 'checked' : '' ?>>
                     <label class="form-check-label" for="session_secure">HTTPS Cookies</label>
+                </div>
+                <div class="form-text">
+                    Leave HTTPS Cookies enabled for production HTTPS sites. Only turn this off for local testing or an HTTP-only install.
                 </div>
             </div>
             <div class="col-12">

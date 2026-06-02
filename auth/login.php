@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             set_user_session($u);
-            session_regenerate_id(true);
+            refresh_session_security();
             header('Location: /dashboard.php');
             exit;
         }
