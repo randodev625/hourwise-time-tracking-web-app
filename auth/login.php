@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$u || !password_verify($password, $u['password_hash'])) {
             auth_rate_limit_record_attempt($pdo, 'login', $email);
+            audit_log('login_failed', ['email_hash' => hash('sha256', strtolower($email))]);
             $err = 'Invalid credentials.';
         } else {
             auth_rate_limit_clear($pdo, 'login', $email);
@@ -36,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             set_user_session($u);
             refresh_session_security();
+            audit_log('login_success');
             header('Location: /dashboard.php');
             exit;
         }

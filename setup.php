@@ -115,6 +115,7 @@ try {
     $userCount = setup_user_count($pdo);
     $setupRequired = app_setup_required($pdo);
 } catch (Throwable $e) {
+    log_exception($e, 'Setup database connection check failed.');
     $pdo = null;
     $userCount = 0;
     $setupRequired = true;
@@ -191,7 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $userCount = setup_user_count($pdo);
                     $messages[] = 'Database connection successful.';
                 } catch (Throwable $e) {
-                    $errors[] = 'Could not save secrets: ' . $e->getMessage();
+                    log_exception($e, 'Could not save setup secrets.', ['action' => $action]);
+                    $errors[] = 'Could not save setup values right now. Please check the server logs and try again.';
                 }
             }
         }
@@ -210,7 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $userCount = setup_user_count($pdo);
                 } catch (Throwable $e) {
-                    $errors[] = 'Migration failed: ' . $e->getMessage();
+                    log_exception($e, 'Setup migration failed.', ['action' => $action]);
+                    $errors[] = 'Migration failed. Please check the server logs and try again.';
                 }
             }
         }
@@ -272,7 +275,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($pdo->inTransaction()) {
                             $pdo->rollBack();
                         }
-                        $errors[] = 'Could not create admin user: ' . $e->getMessage();
+                        log_exception($e, 'Could not create setup admin user.', ['action' => $action]);
+                        $errors[] = 'Could not create the admin user right now. Please check the server logs and try again.';
                     }
                 }
             }

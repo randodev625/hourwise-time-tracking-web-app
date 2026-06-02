@@ -16,14 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $err = 'Please enter a valid email address.';
         } elseif (auth_rate_limit_status($pdo, 'password_reset', $email)['limited']) {
+            audit_log('password_reset_rate_limited', ['email_hash' => hash('sha256', strtolower($email))]);
             $sent = true;
         } else {
             try {
                 auth_rate_limit_record_attempt($pdo, 'password_reset', $email);
                 issue_password_reset_token($pdo, $email);
+                audit_log('password_reset_requested', ['email_hash' => hash('sha256', strtolower($email))]);
                 $sent = true;
             } catch (Throwable $e) {
-                $err = 'We could not send the reset email right now. Please try again again shortly.';
+                log_exception($e, 'Password reset email failed.', ['email_hash' => hash('sha256', strtolower($email))]);
+                $err = 'We could not send the reset email right now. Please try again shortly.';
             }
         }
     }

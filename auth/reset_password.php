@@ -26,11 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 if (reset_user_password($pdo, $token, $password)) {
+                    audit_log('password_reset_completed', ['reset_user_id' => (int)$record['user_id']]);
                     header('Location: /auth/login.php?reset=1');
                     exit;
                 }
                 $err = 'This reset link is invalid or has expired.';
             } catch (Throwable $e) {
+                log_exception($e, 'Password reset failed.');
                 $err = 'We could not reset your password right now. Please try again later.';
             }
         }

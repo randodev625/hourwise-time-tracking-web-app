@@ -35,10 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         try {
             delete_user_account($pdo, (int)$userId);
+            audit_log('account_deleted', ['deleted_user_id' => (int)$userId]);
             clear_auth_session();
             header('Location: /auth/login.php?deleted=1');
             exit;
         } catch (Throwable $e) {
+            log_exception($e, 'Account deletion failed.', ['user_id' => (int)$userId]);
             $errors[] = 'Something went wrong while deleting your account.';
         }
     }

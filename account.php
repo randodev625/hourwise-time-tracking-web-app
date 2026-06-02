@@ -218,6 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$errors) {
                     delete_user_account($pdo, (int)$userId);
+                    audit_log('account_deleted', ['deleted_user_id' => (int)$userId]);
                     clear_auth_session();
                     header('Location: /auth/login.php?deleted=1');
                     exit;
@@ -228,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
         } catch (Throwable $e) {
+            log_exception($e, 'Account update failed.', ['action' => $action ?? 'unknown', 'user_id' => (int)$userId]);
             $errors[] = 'Something went wrong while updating your account.';
         }
     }

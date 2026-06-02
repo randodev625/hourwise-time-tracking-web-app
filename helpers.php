@@ -27,6 +27,73 @@ function user_id(): ?int { return $_SESSION['user']['id'] ?? null; }
 
 function current_user(): ?array { return $_SESSION['user'] ?? null; }
 
+function app_log_path(string $filename): string {
+    return __DIR__ . '/../secrets/logs/' . $filename;
+}
+
+function write_log_line(string $filename, array $entry): void {
+    $dir = dirname(app_log_path($filename));
+    if (!is_dir($dir) && !mkdir($dir, 0700, true)) {
+        error_log('Could not create application log directory.');
+        return;
+    }
+
+    $path = app_log_path($filename);
+    $entry['timestamp'] = gmdate('c');
+    $line = json_encode($entry, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($line === false || error_log($line . PHP_EOL, 3, $path) === false) {
+        error_log('Could not write application log entry.');
+        return;
+    }
+
+    @chmod($path, 0600);
+}
+
+function log_exception(Throwable $e, string $message, array $context = []): void {
+    write_log_line('app.log', [
+        'level' => 'error',
+        'message' => $message,
+        'exception' => get_class($e),
+        'exception_message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'context' => sanitize_log_context($context),
+    ]);
+}
+
+function audit_log(string $event, array $context = []): void {
+    write_log_line('audit.log', [
+        'event' => $event,
+        'user_id' => user_id(),
+        'ip_hash' => hash('sha256', client_ip_address()),
+        'context' => sanitize_log_context($context),
+    ]);
+}
+
+function sanitize_log_context(array $context): array {
+    $safe = [];
+    foreach ($context as $key => $value) {
+        $key = (string)$key;
+        if (preg_match('/pass(word)?|secret|token|csrf|credential/i', $key)) {
+            $safe[$key] = '[redacted]';
+            continue;
+        }
+
+        if (is_bool($value) || is_int($value) || is_float($value) || $value === null) {
+            $safe[$key] = $value;
+            continue;
+        }
+
+        if (is_string($value)) {
+            $safe[$key] = mb_substr($value, 0, 500);
+            continue;
+        }
+
+        $safe[$key] = '[unsupported]';
+    }
+    return $safe;
+}
+
 function set_user_session(array $user): void {
     $timezone = (string)($user['timezone'] ?? app_default_timezone());
     if (!in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
