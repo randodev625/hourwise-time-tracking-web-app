@@ -61,10 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($_POST['stop_timer'])) {
         $record_id = (int)$_POST['stop_timer'];
-        $returnTo = trim($_POST['return_to'] ?? 'track.php');
-        if ($returnTo === '') {
-            $returnTo = 'track.php';
-        }
+        $returnTo = safe_redirect_path((string)($_POST['return_to'] ?? 'track.php'), 'track.php', ['track.php', 'dashboard.php']);
 
         $pdo->prepare('
             UPDATE time_records

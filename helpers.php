@@ -85,6 +85,45 @@ function csrf_check(): bool {
 
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 
+function safe_redirect_path(string $value, string $fallback = 'entries.php', array $allowedPaths = []): string {
+    $value = trim($value);
+    if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
+        return $fallback;
+    }
+
+    if (str_contains($value, '\\') || str_starts_with($value, '//')) {
+        return $fallback;
+    }
+
+    $parts = parse_url($value);
+    if ($parts === false || isset($parts['scheme']) || isset($parts['host'])) {
+        return $fallback;
+    }
+
+    $path = (string)($parts['path'] ?? '');
+    $path = ltrim($path, '/');
+    if ($path === '' || str_contains($path, '..')) {
+        return $fallback;
+    }
+
+    $allowedPaths = $allowedPaths ?: ['entries.php', 'track.php', 'dashboard.php'];
+    if (!in_array($path, $allowedPaths, true)) {
+        return $fallback;
+    }
+
+    $safePath = $path;
+    if (isset($parts['query']) && $parts['query'] !== '') {
+        $safePath .= '?' . $parts['query'];
+    }
+
+    return $safePath;
+}
+
+function add_query_arg(string $path, string $key, string $value): string {
+    $separator = str_contains($path, '?') ? '&' : '?';
+    return $path . $separator . rawurlencode($key) . '=' . rawurlencode($value);
+}
+
 function iso_datetime(string $dt): string { return date('Y-m-d H:i:s', strtotime($dt)); }
 
 function week_bounds(DateTime $ref): array {

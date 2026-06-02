@@ -8,7 +8,7 @@ $utcTz = new DateTimeZone('UTC');
 
 // For security, we only allow numeric IDs and validate them before querying the database.
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
-$returnTo = $_GET['return'] ?? $_POST['return'] ?? 'entries.php';
+$returnTo = safe_redirect_path((string)($_GET['return'] ?? $_POST['return'] ?? 'entries.php'));
 $stopped = isset($_GET['stopped']) && $_GET['stopped'] === '1';
 if ($id <= 0) {
     header('Location: entries.php');
@@ -60,9 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delete = $pdo->prepare('DELETE FROM time_records WHERE id = ? AND user_id = ? LIMIT 1');
             $delete->execute([$id, $user_id]);
 
-            $redirectTarget = $returnTo !== '' ? $returnTo : 'entries.php';
-            $redirectTarget .= (str_contains($redirectTarget, '?') ? '&' : '?') . 'deleted=1';
-            header('Location: ' . $redirectTarget);
+            header('Location: ' . add_query_arg($returnTo, 'deleted', '1'));
             exit;
         }
 
@@ -116,9 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':user_id' => $user_id,
             ]);
 
-            $redirectTarget = $returnTo !== '' ? $returnTo : 'entries.php';
-            $redirectTarget .= (str_contains($redirectTarget, '?') ? '&' : '?') . 'updated=1';
-            header('Location: ' . $redirectTarget);
+            header('Location: ' . add_query_arg($returnTo, 'updated', '1'));
             exit;
         }
 
