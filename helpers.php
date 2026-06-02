@@ -45,8 +45,30 @@ function set_user_session(array $user): void {
 function avatar_url(?string $path): ?string {
     $path = trim((string)$path);
     if ($path === '') return null;
-    if ($path[0] !== '/') return '/' . $path;
+    if (!preg_match('#^/uploads/avatars/avatar_[0-9]+_[a-f0-9]{16}\.(jpg|png|webp)$#', $path)) {
+        return null;
+    }
     return $path;
+}
+
+function avatar_file_path(?string $path): ?string {
+    $path = avatar_url($path);
+    if ($path === null) {
+        return null;
+    }
+
+    $dir = realpath(__DIR__ . '/uploads/avatars');
+    if ($dir === false) {
+        return null;
+    }
+
+    $fullPath = $dir . '/' . basename($path);
+    $realPath = realpath($fullPath);
+    if ($realPath === false || !str_starts_with($realPath, $dir . DIRECTORY_SEPARATOR)) {
+        return null;
+    }
+
+    return $realPath;
 }
 
 function user_display_name(?array $user): string {
@@ -816,8 +838,8 @@ function delete_user_account(PDO $pdo, int $userId): void {
     }
 
     if ($avatarPath !== '') {
-        $avatarFullPath = __DIR__ . $avatarPath;
-        if (is_file($avatarFullPath)) {
+        $avatarFullPath = avatar_file_path($avatarPath);
+        if ($avatarFullPath !== null && is_file($avatarFullPath)) {
             @unlink($avatarFullPath);
         }
     }

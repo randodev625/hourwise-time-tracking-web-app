@@ -27,12 +27,24 @@ function load_user(PDO $pdo, int $userId): array {
 }
 
 function delete_avatar_file(?string $avatarPath): void {
-    $avatarPath = trim((string)$avatarPath);
-    if ($avatarPath === '') return;
-    $full = __DIR__ . $avatarPath;
+    $full = avatar_file_path($avatarPath);
+    if ($full === null) return;
     if (is_file($full)) {
         @unlink($full);
     }
+}
+
+function avatar_upload_limits(): array {
+    return [
+        'max_bytes' => 5 * 1024 * 1024,
+        'max_width' => 4096,
+        'max_height' => 4096,
+        'allowed_mimes' => [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+        ],
+    ];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -134,19 +146,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $tmp = $_FILES['avatar']['tmp_name'];
                     $size = (int)($_FILES['avatar']['size'] ?? 0);
-                    if ($size > 5 * 1024 * 1024) {
+                    $limits = avatar_upload_limits();
+                    if (!is_uploaded_file($tmp)) {
+                        $errors[] = 'Upload failed. Please try another image.';
+                    }
+                    if ($size <= 0 || $size > $limits['max_bytes']) {
                         $errors[] = 'Profile photo must be 5 MB or smaller.';
                     }
 
-                    $finfo = new finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->file($tmp);
-                    $allowed = [
-                        'image/jpeg' => 'jpg',
-                        'image/png' => 'png',
-                        'image/webp' => 'webp',
-                    ];
-                    if (!isset($allowed[$mime])) {
+                    $allowed = $limits['allowed_mimes'];
+                    $mime = '';
+                    if (!$errors) {
+                        $finfo = new finfo(FILEINFO_MIME_TYPE);
+                        $mime = (string)$finfo->file($tmp);
+                    }
+                    if (!$errors && !isset($allowed[$mime])) {
                         $errors[] = 'Only JPG, PNG, and WEBP images are allowed.';
+                    }
+
+                    $imageInfo = $errors ? false : @getimagesize($tmp);
+                    if (!$errors && !is_array($imageInfo)) {
+                        $errors[] = 'Uploaded file must be a valid image.';
+                    }
+                    if (!$errors && ($imageInfo['mime'] ?? '') !== $mime) {
+                        $errors[] = 'Uploaded image type does not match its content.';
+                    }
+                    if (!$errors && ((int)$imageInfo[0] <= 0 || (int)$imageInfo[1] <= 0)) {
+                        $errors[] = 'Uploaded image has invalid dimensions.';
+                    }
+                    if (!$errors && ((int)$imageInfo[0] > $limits['max_width'] || (int)$imageInfo[1] > $limits['max_height'])) {
+                        $errors[] = 'Profile photo dimensions must be 4096 by 4096 pixels or smaller.';
                     }
 
                     if (!$errors) {
@@ -159,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if (!move_uploaded_file($tmp, $destination)) {
                                 $errors[] = 'Unable to save uploaded image.';
                             } else {
+                                @chmod($destination, 0644);
                                 delete_avatar_file($userWithPassword['avatar_path'] ?? '');
                                 $avatarPath = '/uploads/avatars/' . $filename;
                                 $pdo->prepare('UPDATE users SET avatar_path = ? WHERE id = ?')->execute([$avatarPath, $userId]);
@@ -203,6 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$accountAvatarUrl = avatar_url($user['avatar_path'] ?? '');
 include __DIR__ . '/header.php';
 ?>
 <h1 class="mb-4">Manage Account</h1>
@@ -286,8 +317,8 @@ include __DIR__ . '/header.php';
         <div class="card p-4">
             <h2 class="h5 mb-3">Profile Photo</h2>
             <div class="text-center mb-3">
-                <?php if (!empty($user['avatar_path'])): ?>
-                    <img src="<?= h($user['avatar_path']) ?>" alt="<?= h(user_display_name($user)) ?>" class="account-avatar-large">
+                <?php if ($accountAvatarUrl !== null): ?>
+                    <img src="<?= h($accountAvatarUrl) ?>" alt="<?= h(user_display_name($user)) ?>" class="account-avatar-large">
                 <?php else: ?>
                     <div class="account-avatar-large-placeholder"><?= h(user_initials($user)) ?></div>
                 <?php endif; ?>
@@ -299,12 +330,12 @@ include __DIR__ . '/header.php';
                 <div class="mb-3">
                     <label for="avatar" class="form-label">Upload New Photo</label>
                     <input type="file" id="avatar" name="avatar" class="form-control" accept="image/jpeg,image/png,image/webp" required>
-                    <div class="form-text">JPG, PNG, or WEBP. Max 5 MB.</div>
+                    <div class="form-text">JPG, PNG, or WEBP. Max 5 MB and 4096 by 4096 pixels.</div>
                 </div>
                 <button type="submit" class="btn btn-outline-primary">Upload Photo</button>
             </form>
 
-            <?php if (!empty($user['avatar_path'])): ?>
+            <?php if ($accountAvatarUrl !== null): ?>
                 <form method="post">
                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                     <input type="hidden" name="action" value="remove_avatar">
