@@ -94,6 +94,26 @@ function sanitize_log_context(array $context): array {
     return $safe;
 }
 
+function pdo_connection_options(array $overrides = []): array {
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+
+    $initCommandAttr = PHP_VERSION_ID >= 80400
+        ? Pdo\Mysql::ATTR_INIT_COMMAND
+        : PDO::MYSQL_ATTR_INIT_COMMAND;
+
+    $options[$initCommandAttr] = "SET sql_mode='STRICT_ALL_TABLES'";
+
+    foreach ($overrides as $key => $value) {
+        $options[$key] = $value;
+    }
+
+    return $options;
+}
+
 function set_user_session(array $user): void {
     $timezone = (string)($user['timezone'] ?? app_default_timezone());
     if (!in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
