@@ -10,6 +10,11 @@ function redirect_projects(string $params = ''): void {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!csrf_check()) {
+        http_response_code(400);
+        exit('Invalid CSRF token.');
+    }
+
     $action = $_POST['action'];
 
     if ($action === 'create_project') {
@@ -63,6 +68,7 @@ include __DIR__ . '/header.php';
 <div class="card mb-4 p-3">
     <h2 class="h5 mb-3">Add Project</h2>
     <form method="post" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="action" value="create_project">
         <div class="col-md-4">
             <label class="form-label">Client</label>
@@ -105,6 +111,7 @@ include __DIR__ . '/header.php';
                             <td>
                                 <a href="project_edit.php?id=<?= (int)$project['id'] ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form method="post" class="d-inline">
+                                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="toggle_project">
                                     <input type="hidden" name="id" value="<?= (int)$project['id'] ?>">
                                     <button type="submit" class="btn btn-sm <?= (int)$project['is_active'] === 1 ? 'btn-outline-secondary' : 'btn-outline-secondary' ?>">

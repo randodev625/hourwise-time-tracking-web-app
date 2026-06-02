@@ -20,36 +20,40 @@ if (!$category) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? 'save';
-
-    if ($action === 'delete') {
-        $recordsCountStmt = $pdo->prepare('SELECT COUNT(*) FROM time_records WHERE user_id = ? AND category_id = ?');
-        $recordsCountStmt->execute([$user_id, $id]);
-        $recordsCount = (int)$recordsCountStmt->fetchColumn();
-
-        if ($recordsCount > 0) {
-            $error = 'Cannot delete this category while it still has time entries.';
-        } else {
-            $delete = $pdo->prepare('DELETE FROM work_categories WHERE id = ? AND user_id = ?');
-            $delete->execute([$id, $user_id]);
-            header('Location: categories.php?deleted=1');
-            exit;
-        }
+    if (!csrf_check()) {
+        $error = 'Invalid CSRF token.';
     } else {
-        $name = trim($_POST['name'] ?? '');
-        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $action = $_POST['action'] ?? 'save';
 
-        if ($name === '') {
-            $error = 'Category name is required.';
+        if ($action === 'delete') {
+            $recordsCountStmt = $pdo->prepare('SELECT COUNT(*) FROM time_records WHERE user_id = ? AND category_id = ?');
+            $recordsCountStmt->execute([$user_id, $id]);
+            $recordsCount = (int)$recordsCountStmt->fetchColumn();
+
+            if ($recordsCount > 0) {
+                $error = 'Cannot delete this category while it still has time entries.';
+            } else {
+                $delete = $pdo->prepare('DELETE FROM work_categories WHERE id = ? AND user_id = ?');
+                $delete->execute([$id, $user_id]);
+                header('Location: categories.php?deleted=1');
+                exit;
+            }
         } else {
-            $update = $pdo->prepare('UPDATE work_categories SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
-            $update->execute([$name, $is_active, $id, $user_id]);
-            header('Location: categories.php?updated=1');
-            exit;
-        }
+            $name = trim($_POST['name'] ?? '');
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-        $category['name'] = $name;
-        $category['is_active'] = $is_active;
+            if ($name === '') {
+                $error = 'Category name is required.';
+            } else {
+                $update = $pdo->prepare('UPDATE work_categories SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
+                $update->execute([$name, $is_active, $id, $user_id]);
+                header('Location: categories.php?updated=1');
+                exit;
+            }
+
+            $category['name'] = $name;
+            $category['is_active'] = $is_active;
+        }
     }
 }
 
@@ -68,6 +72,7 @@ include __DIR__ . '/header.php';
     <?php endif; ?>
 
     <form method="post" class="row g-3">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int)$category['id'] ?>">
 
         <div class="col-12">

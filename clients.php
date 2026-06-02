@@ -10,6 +10,11 @@ function redirect_clients(string $params = ''): void {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!csrf_check()) {
+        http_response_code(400);
+        exit('Invalid CSRF token.');
+    }
+
     $action = $_POST['action'];
 
     if ($action === 'create_client') {
@@ -47,6 +52,7 @@ include __DIR__ . '/header.php';
 <div class="card mb-4 p-3">
     <h2 class="h5 mb-3">Add Client</h2>
     <form method="post" class="row g-2">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="action" value="create_client">
         <div class="col-md-9">
             <input type="text" name="name" class="form-control" placeholder="Client name" required>
@@ -77,6 +83,7 @@ include __DIR__ . '/header.php';
                             <td>
                                 <a href="client_edit.php?id=<?= (int)$client['id'] ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form method="post" class="d-inline">
+                                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="toggle_client">
                                     <input type="hidden" name="id" value="<?= (int)$client['id'] ?>">
                                     <button type="submit" class="btn btn-sm <?= (int)$client['is_active'] === 1 ? 'btn-outline-secondary' : 'btn-outline-secondary' ?>">

@@ -232,6 +232,7 @@ include __DIR__ . '/header.php';
 <div class="card mb-4 p-3">
     <h2 class="h5 mb-3">Start a Timer</h2>
     <form method="post" action="track.php" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <div class="col-md-6">
             <label for="dashboard_project_id" class="form-label">Project</label>
             <select id="dashboard_project_id" name="project_id" class="form-select">
@@ -271,6 +272,7 @@ include __DIR__ . '/header.php';
                         <span class="timer badge bg-primary ms-2" data-start-ts="<?= $ts ?>">0:00</span>
                     </span>
                     <form method="post" action="track.php" class="m-0">
+                        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="return_to" value="dashboard.php">
                         <button type="submit" name="stop_timer" value="<?= $r['id'] ?>" class="btn btn-danger btn-sm">Stop</button>
                     </form>

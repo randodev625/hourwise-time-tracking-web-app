@@ -24,6 +24,11 @@ $categoriesStmt->execute([$user_id]);
 $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_check()) {
+        http_response_code(400);
+        exit('Invalid CSRF token.');
+    }
+
     if (!empty($_POST['start_timer'])) {
         $project_id = (int)($_POST['project_id'] ?? 0);
         $category_id = (int)($_POST['category_id'] ?? 0);
@@ -108,6 +113,7 @@ include __DIR__ . '/header.php';
                         <span class="timer badge bg-primary ms-2" data-start-ts="<?= $ts ?>">0:00</span>
                     </span>
                     <form method="post" class="m-0">
+                        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="return_to" value="track.php">
                         <button type="submit" name="stop_timer" value="<?= $r['id'] ?>" class="btn btn-danger btn-sm">Stop</button>
                     </form>
@@ -122,6 +128,7 @@ include __DIR__ . '/header.php';
 <div class="card mb-4 p-3">
     <h2 class="h5 mb-3">Start a New Timer</h2>
     <form method="post" class="row g-2">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <div class="col-md-6">
             <label for="project_id" class="form-label">Project</label>
             <select id="project_id" name="project_id" class="form-select" required>

@@ -20,36 +20,40 @@ if (!$client) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? 'save';
-
-    if ($action === 'delete') {
-        $projectCountStmt = $pdo->prepare('SELECT COUNT(*) FROM projects WHERE user_id = ? AND client_id = ?');
-        $projectCountStmt->execute([$user_id, $id]);
-        $projectCount = (int)$projectCountStmt->fetchColumn();
-
-        if ($projectCount > 0) {
-            $error = 'Cannot delete this client while it still has projects.';
-        } else {
-            $delete = $pdo->prepare('DELETE FROM clients WHERE id = ? AND user_id = ?');
-            $delete->execute([$id, $user_id]);
-            header('Location: clients.php?deleted=1');
-            exit;
-        }
+    if (!csrf_check()) {
+        $error = 'Invalid CSRF token.';
     } else {
-        $name = trim($_POST['name'] ?? '');
-        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $action = $_POST['action'] ?? 'save';
 
-        if ($name === '') {
-            $error = 'Client name is required.';
+        if ($action === 'delete') {
+            $projectCountStmt = $pdo->prepare('SELECT COUNT(*) FROM projects WHERE user_id = ? AND client_id = ?');
+            $projectCountStmt->execute([$user_id, $id]);
+            $projectCount = (int)$projectCountStmt->fetchColumn();
+
+            if ($projectCount > 0) {
+                $error = 'Cannot delete this client while it still has projects.';
+            } else {
+                $delete = $pdo->prepare('DELETE FROM clients WHERE id = ? AND user_id = ?');
+                $delete->execute([$id, $user_id]);
+                header('Location: clients.php?deleted=1');
+                exit;
+            }
         } else {
-            $update = $pdo->prepare('UPDATE clients SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
-            $update->execute([$name, $is_active, $id, $user_id]);
-            header('Location: clients.php?updated=1');
-            exit;
-        }
+            $name = trim($_POST['name'] ?? '');
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-        $client['name'] = $name;
-        $client['is_active'] = $is_active;
+            if ($name === '') {
+                $error = 'Client name is required.';
+            } else {
+                $update = $pdo->prepare('UPDATE clients SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
+                $update->execute([$name, $is_active, $id, $user_id]);
+                header('Location: clients.php?updated=1');
+                exit;
+            }
+
+            $client['name'] = $name;
+            $client['is_active'] = $is_active;
+        }
     }
 }
 
@@ -68,6 +72,7 @@ include __DIR__ . '/header.php';
     <?php endif; ?>
 
     <form method="post" class="row g-3">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int)$client['id'] ?>">
 
         <div class="col-12">

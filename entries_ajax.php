@@ -47,6 +47,7 @@ foreach ($entries as $e):
     <td>
         <a href="entry_edit.php?id=<?= (int)$e['id'] ?>&return=<?= urlencode($returnTo) ?>" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
         <form method="post" class="d-inline" action="entries.php<?= $returnQuery !== '' ? '?' . htmlspecialchars($returnQuery) : '' ?>">
+            <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
             <?php /*<button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('Delete this entry?');">Delete</button> */ ?>
         </form>

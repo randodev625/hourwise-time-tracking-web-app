@@ -24,46 +24,50 @@ $clients = $clientsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? 'save';
-
-    if ($action === 'delete') {
-        $recordsCountStmt = $pdo->prepare('SELECT COUNT(*) FROM time_records WHERE user_id = ? AND project_id = ?');
-        $recordsCountStmt->execute([$user_id, $id]);
-        $recordsCount = (int)$recordsCountStmt->fetchColumn();
-
-        if ($recordsCount > 0) {
-            $error = 'Cannot delete this project while it still has time entries.';
-        } else {
-            $delete = $pdo->prepare('DELETE FROM projects WHERE id = ? AND user_id = ?');
-            $delete->execute([$id, $user_id]);
-            header('Location: projects.php?deleted=1');
-            exit;
-        }
+    if (!csrf_check()) {
+        $error = 'Invalid CSRF token.';
     } else {
-        $client_id = (int)($_POST['client_id'] ?? 0);
-        $name = trim($_POST['name'] ?? '');
-        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $action = $_POST['action'] ?? 'save';
 
-        if ($name === '') {
-            $error = 'Project name is required.';
-        } elseif ($client_id <= 0) {
-            $error = 'Please choose a client.';
-        } else {
-            $clientCheck = $pdo->prepare('SELECT id FROM clients WHERE id = ? AND user_id = ? LIMIT 1');
-            $clientCheck->execute([$client_id, $user_id]);
-            if (!$clientCheck->fetch()) {
-                $error = 'Selected client is invalid.';
+        if ($action === 'delete') {
+            $recordsCountStmt = $pdo->prepare('SELECT COUNT(*) FROM time_records WHERE user_id = ? AND project_id = ?');
+            $recordsCountStmt->execute([$user_id, $id]);
+            $recordsCount = (int)$recordsCountStmt->fetchColumn();
+
+            if ($recordsCount > 0) {
+                $error = 'Cannot delete this project while it still has time entries.';
             } else {
-                $update = $pdo->prepare('UPDATE projects SET client_id = ?, name = ?, is_active = ? WHERE id = ? AND user_id = ?');
-                $update->execute([$client_id, $name, $is_active, $id, $user_id]);
-                header('Location: projects.php?updated=1');
+                $delete = $pdo->prepare('DELETE FROM projects WHERE id = ? AND user_id = ?');
+                $delete->execute([$id, $user_id]);
+                header('Location: projects.php?deleted=1');
                 exit;
             }
-        }
+        } else {
+            $client_id = (int)($_POST['client_id'] ?? 0);
+            $name = trim($_POST['name'] ?? '');
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-        $project['client_id'] = $client_id;
-        $project['name'] = $name;
-        $project['is_active'] = $is_active;
+            if ($name === '') {
+                $error = 'Project name is required.';
+            } elseif ($client_id <= 0) {
+                $error = 'Please choose a client.';
+            } else {
+                $clientCheck = $pdo->prepare('SELECT id FROM clients WHERE id = ? AND user_id = ? LIMIT 1');
+                $clientCheck->execute([$client_id, $user_id]);
+                if (!$clientCheck->fetch()) {
+                    $error = 'Selected client is invalid.';
+                } else {
+                    $update = $pdo->prepare('UPDATE projects SET client_id = ?, name = ?, is_active = ? WHERE id = ? AND user_id = ?');
+                    $update->execute([$client_id, $name, $is_active, $id, $user_id]);
+                    header('Location: projects.php?updated=1');
+                    exit;
+                }
+            }
+
+            $project['client_id'] = $client_id;
+            $project['name'] = $name;
+            $project['is_active'] = $is_active;
+        }
     }
 }
 
@@ -82,6 +86,7 @@ include __DIR__ . '/header.php';
     <?php endif; ?>
 
     <form method="post" class="row g-3">
+        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int)$project['id'] ?>">
 
         <div class="col-md-6">
