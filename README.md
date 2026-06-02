@@ -3,8 +3,8 @@
 **Time Tracker by Jim Kulakowski**
 
 > [!WARNING]
-> This repository is currently private and should stay private until the public-release hardening checklist is complete.
-> Start with [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before publishing on GitHub or deploying to production.
+> This repository is currently private while public-release hardening is being completed.
+> Review [SECURITY-HARDENING.md](SECURITY-HARDENING.md) before publishing on GitHub or deploying to production.
 
 ## Overview
 This is a server-rendered PHP time-tracking app for freelancers/small teams.
@@ -12,13 +12,23 @@ This is a server-rendered PHP time-tracking app for freelancers/small teams.
 Core features:
 - User authentication (register/login/logout)
 - Password reset by email (PHPMailer; SMTP optional but recommended)
-- Admin settings (admin-only): SMTP config + registration access toggle
+- First-run browser setup for database, SMTP, app settings, migrations, and initial admin account
+- Admin settings (admin-only): SMTP config, registration access toggle, and read-only diagnostics
 - Client/Project/Category management
 - Start/stop timers and edit entries
 - Dashboard summaries and charts
 - CSV export
 - Account management (profile, avatar, password, delete account)
 - Per-user timezone support
+
+Security and operations features:
+- External secrets loaded from `../secrets/*`, outside the web root
+- CSRF protection on state-changing POST actions
+- DB-backed login and password-reset throttling
+- Session ID and CSRF token rotation after sensitive auth/account events
+- Apache/LiteSpeed security header defaults in `.htaccess`
+- Avatar upload validation and upload-directory execution protections
+- Application and audit logs written outside the web root
 
 ## Tech Stack
 - PHP (plain PHP pages, no framework)
@@ -31,14 +41,17 @@ Core features:
 - `middleware.php`: bootstraps config, helpers, session, DB.
 - `config.php`: runtime config loaded from external secrets.
 - `db.php`: PDO connection.
-- `helpers.php`: shared auth, timezone, formatting, mail, account delete, and utility functions.
+- `.htaccess`: Apache/LiteSpeed defaults for 404 handling and baseline security headers.
+- `helpers.php`: shared auth, CSRF, rate limiting, timezone, formatting, mail, logging, account delete, and utility functions.
 - `auth/*.php`: login/register/forgot/reset/logout.
 - `dashboard.php`: weekly totals, donut + trend charts, quick timer actions.
 - `track.php`: running timers and start/stop.
 - `entries.php`, `entries_ajax.php`, `entry_edit.php`: listing/filtering/loading/editing/exporting entries.
 - `clients.php`, `projects.php`, `categories.php` (+ edit pages): management CRUD.
 - `account.php`: profile, timezone, password, avatar, delete account modal.
-- `migrations/*.sql`: schema changes (for example timezone column).
+- `admin_settings.php`: admin-only mail, registration, and diagnostics view.
+- `setup.php`: first-run setup wizard.
+- `migrations/*.sql`: schema changes, including timezone support and auth rate limits.
 
 ## Request Flow
 1. Page includes `middleware.php`.
@@ -57,6 +70,7 @@ Core features:
 - `work_categories`
 - `time_records`
 - `password_reset_tokens`
+- `auth_rate_limits`
 - legacy/optional tables referenced by code: `jobs`, `report_links`
 
 ## Timezone Behavior
@@ -121,28 +135,36 @@ Important:
 - Ensure filesystem permissions restrict read access.
 - Rotate SMTP/DB credentials if exposed.
 
-## Security Hardening Status
-This app is not ready for a public repository or production deployment until the issues in
-[SECURITY-HARDENING.md](SECURITY-HARDENING.md) are worked through.
+Runtime logs are also stored outside the web root:
+- `../secrets/logs/app.log`: application exception details as JSON lines.
+- `../secrets/logs/audit.log`: security/audit events as JSON lines.
 
-Highest-priority items:
-- Add CSRF checks and hidden CSRF fields to every state-changing POST form.
-- Replace session-only login throttling with persistent DB-backed rate limiting.
-- Add throttling for password reset requests.
-- Restrict redirect targets that are currently influenced by request parameters.
-- Add application or web-server security headers.
-- Run a secret scan across the full Git history before making the repository public.
-- Add CI checks for PHP syntax linting once PHP is available in the build environment.
+## Security Hardening Status
+See [SECURITY-HARDENING.md](SECURITY-HARDENING.md) for the working checklist and remaining release-readiness tasks.
 
 Current positive foundations:
 - Runtime credentials are loaded from `../secrets/*` instead of hardcoded in repo files.
 - PDO prepared statements are used throughout the main data access paths.
+- CSRF checks protect state-changing POST forms.
+- Request-controlled redirects are constrained to known local app paths.
+- Login and forgot-password flows use persistent DB-backed rate limiting.
+- Session cookies use `HttpOnly` and `SameSite=Lax`; production should keep `APP_SESSION_SECURE = true`.
+- Session IDs and CSRF tokens rotate after login, first-run setup login, password change, email change, and account deletion.
 - Password reset tokens are stored as hashes.
-- Uploaded avatars use server-side MIME checks and randomized filenames.
+- Password reset tokens are invalidated after password changes.
+- Apache/LiteSpeed `.htaccess` defaults provide baseline security headers where supported.
+- Uploaded avatars use server-side MIME checks, image decode checks, dimension limits, randomized filenames, and non-executable permissions.
 - Runtime avatar uploads are ignored by Git.
+- User-facing errors avoid raw exception details; app/audit logs are written outside the web root.
+
+Remaining operational work to track:
+- Add CI checks for PHP syntax linting once PHP is available in the build environment.
+- Document supported PHP and MySQL versions.
+- Confirm backup automation and test restore.
+- Decide whether to configure production HSTS at the host/CDN layer.
 
 ## First-Time Setup Checklist
-1. Create DB and tables.
+1. Create an empty MySQL database.
 2. Apply migrations in `migrations/`:
    `php scripts/migrate.php`
 3. Create `../secrets/db_credentials.php`.
@@ -164,7 +186,15 @@ Current positive foundations:
 - Admin Settings includes:
   - SMTP mail configuration
   - Global registration toggle (`allow_registration`)
+  - Read-only diagnostics for error display, PHP logging, `expose_php`, app/audit log writability, and secure session cookies
 - When registration is disabled, `/auth/register.php` redirects to login and registration links are hidden.
+
+## Deployment Notes
+- For Apache/LiteSpeed, the root `.htaccess` provides baseline security headers and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.
+- Other hosts, such as Nginx, Caddy, or CDN-fronted deployments, must configure equivalent headers and upload protections in their own server layer.
+- `Strict-Transport-Security` is intentionally not enabled in the repository `.htaccess`; configure HSTS only after confirming HTTPS coverage for the production domain.
+- Keep `display_errors` and `expose_php` disabled in production.
+- Keep host/server logs and app logs outside the web root.
 
 ## Notes for Future Development
 - Keep timezone conversion centralized in helpers.
