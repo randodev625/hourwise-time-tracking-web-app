@@ -100,6 +100,42 @@ Migration used for this:
 ## Secrets Implementation
 Yes, this app uses external secrets files and does not store sensitive credentials in repo code.
 
+`config.php` structure:
+```php
+return [
+    'db' => [
+        'dsn' => '',
+        'user' => '',
+        'pass' => '',
+    ],
+    'app' => [
+        'base_url' => '',
+        'timezone' => 'America/New_York',
+        'allow_registration' => false,
+        'session_name' => 'tt_sess',
+        'session_secure' => true,
+        'session_lifetime' => 60 * 60 * 24 * 7,
+    ],
+    'mail' => [
+        'phpmailer_path' => __DIR__ . '/lib/PHPMailer',
+        'host' => '',
+        'username' => '',
+        'password' => '',
+        'port' => 465,
+        'encryption' => 'ssl',
+        'from_email' => '',
+        'from_name' => 'HourWise',
+    ],
+    'auth' => [
+        'password_reset_expires_minutes' => 60,
+        'email_verification_expires_minutes' => 1440,
+    ],
+    'setup' => [
+        'enabled' => false,
+    ],
+];
+```
+
 `config.php` loads:
 - `../secrets/db_credentials.php`
 - `../secrets/email_secret.php`

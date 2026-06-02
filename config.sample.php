@@ -8,6 +8,7 @@ return [
     'app' => [
         'base_url' => '', // loaded from ../secrets/app_secret.php
         'timezone' => 'America/New_York', // loaded from app secret with fallback
+        'allow_registration' => false, // loaded from app secret with fallback
         'session_name' => 'tt_sess',
         'session_secure' => true, // loaded from app secret with fallback
         'session_lifetime' => 60 * 60 * 24 * 7,
