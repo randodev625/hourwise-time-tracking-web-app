@@ -1,8 +1,8 @@
-# HourWise App Guide
+# HourWise
 ![HourWise Social Card](assets/img/hourwise-social-card.jpg)
 
 ## Overview
-HourWise is a simple, but powerful, time tracking and timesheet production app for freelancers who want a straightforward, reliable way to see where their time goes and generate reports.
+HourWise is a time tracking and timesheet app for freelancers who want a straightforward, reliable way to see where their time goes and generate reports.
 
 **Core features:**
 - User authentication (register/login/logout)
@@ -29,6 +29,28 @@ HourWise is a simple, but powerful, time tracking and timesheet production app f
 - Avatar upload validation and upload-directory execution protections
 - Application and audit logs written outside the web root
 
+## Installation
+### Quick Start
+1. Create an empty MySQL database.
+2. Upload all files to your public web root, usually `public_html`.
+3. Visit your site's URL to start setup.
+
+### Browser-Based Installer
+- On a fresh install, HourWise automatically redirects to `/setup.php`.
+- Enter database, app URL, and timezone details to generate the external secrets files.
+- SMTP is optional during setup and can be configured later in Admin Settings.
+- Choose whether to allow self-registration during setup.
+- Run migrations, then create the first admin account.
+- After the first user exists, setup auto-locks and normal app routes resume.
+- Optional: In `config.php`, set `setup.enabled` to `true` only when you intentionally want to regain access to the setup form.
+
+### Manual Requirements
+- Create `../secrets/db_credentials.php`.
+- Create `../secrets/email_secret.php`.
+- Create `../secrets/app_secret.php`.
+- Confirm the PHPMailer path exists at `lib/PHPMailer`.
+- Apply migrations with `php scripts/migrate.php` if you are not using the browser-based setup flow.
+
 ## Tech Stack
 - PHP 8.3, 8.4, and 8.5 compatible (plain PHP pages, no framework)
 - MySQL (via PDO)
@@ -54,7 +76,7 @@ HourWise is a simple, but powerful, time tracking and timesheet production app f
 - `migrations/*.sql`: schema changes and incremental feature/security updates.
 
 ## Migration Overview
-The repository currently includes these SQL migrations:
+The repository includes these SQL migrations:
 - `migrations/0001_initial_schema.sql`: creates the core tables for users, clients, projects, categories, time records, password reset tokens, and legacy compatibility tables.
 - `migrations/2026-06-01_add_users_timezone.sql`: adds the per-user timezone column.
 - `migrations/2026-06-02_add_email_verification.sql`: adds email verification support and the token table.
@@ -72,7 +94,7 @@ The repository currently includes these SQL migrations:
 3. Protected pages call `require_login()`.
 4. Page logic runs queries and renders HTML.
 
-## Data Model (inferred from code)
+## Data Model Overview
 - `users` (includes `timezone`, `avatar_path`, `pending_email`, password hash)
 - `clients`
 - `projects` (belongs to client + user)
@@ -82,7 +104,7 @@ The repository currently includes these SQL migrations:
 - `email_verification_tokens`
 - `user_two_factor`
 - `auth_rate_limits`
-- legacy/optional tables referenced by code: `jobs`, `report_links`
+- Legacy or optional tables referenced by code: `jobs`, `report_links`
 
 ## Timezone Behavior
 - App default timezone is in config: `config.php -> app.timezone`.
@@ -95,7 +117,7 @@ The repository currently includes these SQL migrations:
   - `formatLocalTimeRecentEntries(...)`
 
 ## Secrets Implementation
-Yes, this app uses external secrets files and does not store sensitive credentials in repo code.
+HourWise uses external secrets files and does not store sensitive credentials in repository code.
 
 `config.php` structure:
 ```php
@@ -183,17 +205,16 @@ Runtime logs are also stored outside the web root:
 - `../secrets/logs/app.log`: application exception details as JSON lines.
 - `../secrets/logs/audit.log`: security/audit events as JSON lines.
 
-## Security Hardening Status
-See [SECURITY-HARDENING.md](SECURITY-HARDENING.md) for the working checklist and remaining release-readiness tasks.
+## Security and Privacy Features
+HourWise includes a layered set of protections designed to safeguard user accounts, time data, and uploaded files.
 
-**Current positive foundations:**
 - Runtime credentials are loaded from `../secrets/*` instead of hardcoded in repo files.
 - PDO prepared statements are used throughout the main data access paths.
 - CSRF checks protect state-changing POST forms.
 - Request-controlled redirects are constrained to known local app paths.
 - Login and forgot-password flows use persistent DB-backed rate limiting.
 - Self-registered accounts must verify their email address before login.
-- Users can enable TOTP-based two-factor authentication and recovery codes.
+- Users can enable TOTP-based two-factor authentication with recovery codes.
 - Session cookies use `HttpOnly` and `SameSite=Lax`; production should keep `APP_SESSION_SECURE = true`.
 - Session IDs and CSRF tokens rotate after login, first-run setup login, password change, email change, and account deletion.
 - Password reset tokens are stored as hashes.
@@ -202,57 +223,29 @@ See [SECURITY-HARDENING.md](SECURITY-HARDENING.md) for the working checklist and
 - Apache/LiteSpeed `.htaccess` defaults provide baseline security headers where supported.
 - Uploaded avatars use server-side MIME checks, image decode checks, dimension limits, randomized filenames, and non-executable permissions.
 - Runtime avatar uploads are ignored by Git.
-- User-facing errors avoid raw exception details; app/audit logs are written outside the web root.
+- User-facing errors avoid raw exception details; app and audit logs are written outside the web root.
 
-**Remaining operational work to track:**
-- Add CI checks for PHP syntax linting once PHP is available in the build environment.
-- Document supported PHP and MySQL versions.
-- Confirm backup automation and test restore.
-- Decide whether to configure production HSTS at the host/CDN layer.
-
-## First-Time Setup Checklist
-1. Create an empty MySQL database.
-2. Apply migrations in `migrations/`:
-   `php scripts/migrate.php`
-3. Create `../secrets/db_credentials.php`.
-4. Create `../secrets/email_secret.php`.
-5. Create `../secrets/app_secret.php`.
-6. Confirm local PHPMailer path exists at `lib/PHPMailer`.
-
-### Optional Browser-Based Installer
-- On a fresh install, the app automatically redirects to `/setup.php`.
-- Enter DB and app URL/timezone credentials to generate secret files.
-- SMTP is optional during install; it can be configured later in Admin Settings.
-- Choose whether to allow new user self-registration during setup.
-- Run migrations, then create the first admin account.
-- After the first user exists, setup auto-locks and normal app routes resume.
-- Optional: set `config.php` -> `setup.enabled` to `true` only when you intentionally need setup access again.
+## Operational Notes
+- Supported PHP and MySQL versions should match the deployment environment.
+- Keep database backups automated and verify restore procedures regularly.
+- Host or CDN settings should be used for any domain-wide transport policy such as HSTS.
 
 ## Admin Controls
 - `/admin_settings.php` is accessible only to the first user account (user ID `1`).
 - Admin Settings includes:
   - SMTP mail configuration
-  - Global registration toggle (`allow_registration`)
+  - Global registration toggle to allow or disallow other users to register accounts (`allow_registration`)
   - Read-only diagnostics for error display, PHP logging, `expose_php`, app/audit log writability, and secure session cookies
 - When registration is disabled, `/auth/register.php` redirects to login and registration links are hidden.
-- When registration is enabled, new self-registered accounts must verify their email before login. Configure SMTP first so verification emails can be delivered.
+- When registration is enabled, new self-registered accounts must verify their email before login. Configuring SMTP first may help verification emails be delivered reliably.
 
 ## Deployment Notes
 - For Apache/LiteSpeed, the root `.htaccess` provides baseline security headers and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.
 - Other hosts, such as Nginx, Caddy, or CDN-fronted deployments, must configure equivalent headers and upload protections in their own server layer.
 - The database bootstrap uses a version-aware PDO MySQL init-command option so the app runs cleanly on PHP 8.3, 8.4, and 8.5.
 - `Strict-Transport-Security` is intentionally not enabled in the repository `.htaccess`; configure HSTS only after confirming HTTPS coverage for the production domain.
+- The included `robots.txt` disallows all crawling by default, which is appropriate for an authenticated web app. It is a crawler hint, not a security control.
 - Keep `display_errors` and `expose_php` disabled in production.
-- Keep host/server logs and app logs outside the web root.
-
-## Notes for Future Development
-- Keep timezone conversion centralized in helpers.
-- Avoid hardcoding timezone strings in page files.
-- Prefer prepared statements (already used consistently).
-- Require CSRF validation for every POST that creates, updates, deletes, exports, starts, or stops app data.
-- Keep redirects constrained to known local app paths.
-- Add migrations for any new security tables, such as rate limiting or audit logging.
-- When adding new user-scoped tables, include cleanup in `delete_user_account(...)`.
 
 ## License
 HourWise by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
