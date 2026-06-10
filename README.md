@@ -1,12 +1,12 @@
 # HourWise
 ![HourWise Social Card](assets/img/hourwise-social-card.jpg)
 
+## Overview
+HourWise is a time tracking and timesheet app for freelancers who want a straightforward, reliable way to see where their time goes and generate reports.
+
 If HourWise is useful to you, consider supporting ongoing development:
 
 [![Support HourWise](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=UMQX59YYKESZN)
-
-## Overview
-HourWise is a time tracking and timesheet app for freelancers who want a straightforward, reliable way to see where their time goes and generate reports.
 
 **Core features:**
 - User authentication (register/login/logout)
