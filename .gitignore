@@ -4,6 +4,7 @@
 Thumbs.db
 .vscode/
 .idea/
+dist/
 
 # Logs / temp
 *.log
