@@ -1,0 +1,156 @@
+<?php
+require __DIR__ . '/../../core/middleware.php';
+if (!empty($_SESSION['user'])) {
+    redirect_to_route('dashboard');
+}
+if (empty($config['app']['allow_registration'])) {
+    redirect_to_route('login');
+}
+
+$err = '';
+$display_name = trim($_POST['display_name'] ?? '');
+$email = trim($_POST['email'] ?? '');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_check()) {
+        $err = 'Invalid CSRF token';
+    }
+
+    $password = $_POST['password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
+
+    if (!$err && $display_name === '') {
+        $err = 'Please enter a user name.';
+    }
+
+    if (!$err && mb_strlen($display_name) > 150) {
+        $err = 'User name must be 150 characters or fewer.';
+    }
+
+    if (!$err && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $err = 'Please enter a valid email address.';
+    }
+
+    if (!$err) {
+        $passwordError = validate_password_strength($password);
+        if ($passwordError !== null) {
+            $err = $passwordError;
+        }
+    }
+
+    if (!$err && $password !== $password_confirm) {
+        $err = 'Password confirmation does not match.';
+    }
+
+    if (!$err) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            $err = 'Email already registered.';
+        }
+    }
+
+    if (!$err) {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare('
+                INSERT INTO users (email, display_name, password_hash, timezone)
+                VALUES (?, ?, ?, ?)
+            ');
+            $stmt->execute([$email, $display_name, $hash, app_default_timezone()]);
+            $newUserId = (int)$pdo->lastInsertId();
+
+            create_default_user_workspace($pdo, $newUserId);
+
+            $pdo->commit();
+            try {
+                send_account_verification_for_user($pdo, $newUserId);
+                audit_log('email_verification_requested', ['registered_user_id' => $newUserId]);
+            } catch (Throwable $e) {
+                log_exception($e, 'Registration verification email failed.', ['registered_user_id' => $newUserId]);
+            }
+
+            redirect_to_route('login', ['registered' => 'verify']);
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $err = 'We could not finish creating your account right now. Please try again.';
+        }
+    }
+}
+
+render_layout_header();
+?>
+<?php if ($err): ?>
+    <div class="alert alert-danger small"><?= h($err) ?></div>
+<?php endif; ?>
+
+<form method="post" class="auth-form d-block mb-4">
+    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+
+    <div class="mb-3">
+        <label class="form-label" for="register_display_name">User Name</label>
+        <input
+            id="register_display_name"
+            class="form-control"
+            name="display_name"
+            type="text"
+            maxlength="150"
+            required
+            autocomplete="username"
+            value="<?= h($display_name) ?>"
+        >
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="register_email">Email</label>
+        <input
+            id="register_email"
+            class="form-control"
+            name="email"
+            type="email"
+            required
+            autocomplete="email"
+            value="<?= h($email) ?>"
+        >
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="register_password">Password</label>
+        <input
+            id="register_password"
+            class="form-control"
+            name="password"
+            type="password"
+            required
+            autocomplete="new-password"
+            minlength="12"
+        >
+        <div class="form-text">Use at least 12 characters with uppercase, lowercase, a number, and a symbol.</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="register_password_confirm">Confirm Password</label>
+        <input
+            id="register_password_confirm"
+            class="form-control"
+            name="password_confirm"
+            type="password"
+            required
+            autocomplete="new-password"
+        >
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <button class="btn btn-primary" type="submit">Register</button>
+    </div>
+</form>
+
+<p class="auth-switch mb-0">
+    Already have an account? <a href="<?= h(route_url('login')) ?>">Sign in here</a>.
+</p>
+<?php render_layout_footer(); ?>

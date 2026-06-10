@@ -1,12 +1,17 @@
-ErrorDocument 403 /403.php
-ErrorDocument 404 /404.php
-ErrorDocument 500 /500.php
+ErrorDocument 403 /403
+ErrorDocument 404 /404
+ErrorDocument 500 /500
 
 <IfModule mod_rewrite.c>
+    Options -MultiViews
     RewriteEngine On
 
+    # Keep private application internals out of the web surface.
+    RewriteRule ^inc/ - [F,L,NC]
+
     # Keep direct access to existing files and directories working,
-    # but route clean application URLs through the front controller.
+    # but route clean URLs and missing legacy .php routes through
+    # the front controller.
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]

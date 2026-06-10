@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/inc/helpers/helpers.php';
 
 function hourwise_dispatch_home(): void
 {
-    require __DIR__ . '/middleware.php';
+    require __DIR__ . '/inc/core/middleware.php';
 
     if (!empty($_SESSION['user'])) {
         redirect_to_route('dashboard');
@@ -14,7 +14,7 @@ function hourwise_dispatch_home(): void
     redirect_to_route('login');
 }
 
-$routes = require __DIR__ . '/routes.php';
+$routes = require __DIR__ . '/inc/core/routes.php';
 $path = request_path();
 
 if ($path === '/') {
@@ -23,13 +23,19 @@ if ($path === '/') {
 
 $route = resolve_route($path);
 if ($route === null) {
-    require __DIR__ . '/404.php';
+    $_SERVER['HOURWISE_ROUTE_NAME'] = 'error_404';
+    $_SERVER['HOURWISE_ROUTE_PATH'] = '/404';
+    $_SERVER['HOURWISE_ROUTE_PARAMS'] = [];
+    require __DIR__ . '/inc/views/errors/status.php';
     exit;
 }
 
 $routeFile = $route['file'] ?? '';
 if (!is_string($routeFile) || $routeFile === '' || !is_file($routeFile)) {
-    require __DIR__ . '/500.php';
+    $_SERVER['HOURWISE_ROUTE_NAME'] = 'error_500';
+    $_SERVER['HOURWISE_ROUTE_PATH'] = '/500';
+    $_SERVER['HOURWISE_ROUTE_PARAMS'] = [];
+    require __DIR__ . '/inc/views/errors/status.php';
     exit;
 }
 

@@ -42,14 +42,14 @@ HourWise is a time tracking and timesheet app for freelancers who want a straigh
 - Choose whether to allow self-registration during setup.
 - Run migrations, then create the first admin account.
 - After the first user exists, setup auto-locks and normal app routes resume.
-- Optional: In `config.php`, set `setup.enabled` to `true` only when you intentionally want to regain access to the setup form.
+- Optional: In `inc/core/config.php`, set `setup.enabled` to `true` only when you intentionally want to regain access to the setup form.
 
 ### Manual Requirements
 - Create `../secrets/db_credentials.php`.
 - Create `../secrets/email_secret.php`.
 - Create `../secrets/app_secret.php`.
 - Confirm the PHPMailer path exists at `lib/PHPMailer`.
-- Apply migrations with `php scripts/migrate.php` if you are not using the browser-based setup flow.
+- Apply migrations with the browser-based setup flow, or run `php scripts/migrate.php` from the project root if you keep the full project structure on the server.
 
 ## Tech Stack
 - PHP 8.3, 8.4, and 8.5 compatible (plain PHP pages, no framework)
@@ -61,20 +61,20 @@ HourWise is a time tracking and timesheet app for freelancers who want a straigh
 
 ## App Structure
 - `index.php`: front controller that resolves the request path and dispatches routed requests.
-- `routes.php`: route table for canonical app URLs, legacy aliases, and API-style endpoints.
-- `middleware.php`: bootstraps config, helpers, session, DB, and canonical redirects.
-- `config.php`: runtime config loaded from external secrets.
-- `db.php`: PDO connection.
+- `inc/core/routes.php`: route table for canonical app URLs, legacy aliases, and API-style endpoints.
+- `inc/core/middleware.php`: bootstraps config, helpers, session, DB, and canonical redirects.
+- `inc/core/config.php`: runtime config loaded from external secrets.
+- `inc/core/db.php`: PDO connection.
 - `.htaccess`: Apache/LiteSpeed rewrite rules for pretty URLs plus baseline security headers.
-- `helpers.php`: shared auth, CSRF, rate limiting, timezone, formatting, mail, logging, account delete, and utility functions.
-- `auth/*.php`: auth handlers rendered through the front controller routes.
-- `dashboard.php`: weekly totals, donut + trend charts, quick timer actions.
-- `track.php`: running timers and start/stop.
-- `entries.php`, `entries_ajax.php`, `entry_edit.php`: listing/filtering/loading/editing/exporting entries.
-- `clients.php`, `projects.php`, `categories.php` (+ edit pages): management CRUD.
-- `account.php`: profile, timezone, password, avatar, delete account modal.
-- `admin_settings.php`: admin-only mail, registration, and diagnostics view.
-- `setup.php`: first-run setup wizard.
+- `inc/helpers/helpers.php`: shared auth, CSRF, rate limiting, timezone, formatting, mail, logging, account delete, and utility functions.
+- `inc/views/app/*.php`: routed application views for the signed-in area.
+- `inc/views/auth/*.php`: routed auth views rendered through shared auth layout wrappers.
+- `inc/views/errors/status.php`: shared routed error view driven by route metadata and front-controller/server error routes.
+- `inc/views/setup/*.php`: setup and install flow views.
+- `inc/api/*.php`: JSON/partial-response handlers for search, filters, and entry list loading.
+- `inc/layout/*.php`: shared document, app, auth, and setup layout wrappers.
+- Legacy `*.php` page URLs are preserved through route aliases and the front controller, without keeping duplicate page files in the web root.
+- `scripts/migrate.php`: CLI migration runner kept outside the web root.
 - `migrations/*.sql`: schema changes and incremental feature/security updates.
 
 ## Migration Overview
@@ -88,12 +88,12 @@ The repository includes these SQL migrations:
 
 ## Request Flow
 1. Apache/LiteSpeed rewrites clean application URLs through `index.php`.
-2. The matched handler includes `middleware.php`.
-3. `middleware.php` loads:
-   - `config.php`
-   - `helpers.php`
+2. The matched handler includes `inc/core/middleware.php`.
+3. `inc/core/middleware.php` loads:
+   - `inc/core/config.php`
+   - `inc/helpers/helpers.php`
    - session via `start_session(...)`
-   - DB via `db.php`
+   - DB via `inc/core/db.php`
 4. Protected pages call `require_login()`.
 5. Page logic runs queries and renders HTML.
 
@@ -110,7 +110,7 @@ The repository includes these SQL migrations:
 - Legacy or optional tables referenced by code: `jobs`, `report_links`
 
 ## Timezone Behavior
-- App default timezone is in config: `config.php -> app.timezone`.
+- App default timezone is in config: `inc/core/config.php -> app.timezone`.
 - Each user has `users.timezone` (IANA value, e.g. `Europe/London`).
 - Session stores timezone through `set_user_session(...)`.
 - Conversions use helpers:
@@ -122,7 +122,7 @@ The repository includes these SQL migrations:
 ## Secrets Implementation
 HourWise uses external secrets files and does not store sensitive credentials in repository code.
 
-`config.php` structure:
+`inc/core/config.php` structure:
 ```php
 return [
     'db' => [
@@ -139,7 +139,7 @@ return [
         'session_lifetime' => 60 * 60 * 24 * 7,
     ],
     'mail' => [
-        'phpmailer_path' => __DIR__ . '/lib/PHPMailer',
+        'phpmailer_path' => dirname(__DIR__, 2) . '/lib/PHPMailer',
         'host' => '',
         'username' => '',
         'password' => '',
@@ -158,7 +158,7 @@ return [
 ];
 ```
 
-`config.php` loads:
+`inc/core/config.php` loads:
 - `../secrets/db_credentials.php`
 - `../secrets/email_secret.php`
 - `../secrets/app_secret.php`

@@ -262,6 +262,34 @@
     align-items: center;
 }
 
+.nav-active-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.55rem 1rem;
+    border-radius: 0.75rem;
+    background: #0d6efd;
+    color: #fff;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 0.35rem 0.9rem rgb(13 110 253 / 18%);
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-active-timer:hover,
+.nav-active-timer:focus {
+    background: #0b5ed7;
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 0.45rem 1rem rgb(13 110 253 / 22%);
+}
+
+.nav-active-timer .timer {
+    font-variant-numeric: tabular-nums;
+}
+
 .account-avatar-large,
 .account-avatar-large-placeholder {
     width: 120px;
