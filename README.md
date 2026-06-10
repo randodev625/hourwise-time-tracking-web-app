@@ -251,6 +251,14 @@ HourWise includes a layered set of protections designed to safeguard user accoun
 - The included `robots.txt` disallows all crawling by default, which is appropriate for an authenticated web app. It is a crawler hint, not a security control.
 - Keep `display_errors` and `expose_php` disabled in production.
 
+## Support HourWise
+
+HourWise is an independent project built to help freelancers track time, produce timesheets, and better understand where their work hours go.
+
+If you find it useful, a small donation helps support continued development, maintenance, documentation, and security improvements.
+
+[Donate to support HourWise](https://www.paypal.com/donate/?hosted_button_id=UMQX59YYKESZN)
+
 ## License
 HourWise by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
 
