@@ -325,8 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     delete_user_account($pdo, (int)$userId);
                     audit_log('account_deleted', ['deleted_user_id' => (int)$userId]);
                     clear_auth_session();
-                    header('Location: /auth/login.php?deleted=1');
-                    exit;
+                    redirect_to_route('login', ['deleted' => '1']);
                 }
             }
 

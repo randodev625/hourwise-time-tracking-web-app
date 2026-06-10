@@ -24,15 +24,12 @@ function entries_redirect_with_filters(array $filters, string $extra = ''): void
         'end_date' => $filters['end_date'] ?? '',
     ], static fn($value) => $value !== null && $value !== '');
 
-    $target = 'entries.php';
-    if (!empty($query)) {
-        $target .= '?' . http_build_query($query);
-    }
     if ($extra !== '') {
-        $target .= empty($query) ? '?' . $extra : '&' . $extra;
+        parse_str($extra, $extraQuery);
+        $query = array_merge($query, $extraQuery);
     }
-    header('Location: ' . $target);
-    exit;
+
+    redirect_to_route('entries', $query);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -166,7 +163,7 @@ $returnQuery = http_build_query(array_filter([
     'start_date' => $filters['start_date'] ?? '',
     'end_date' => $filters['end_date'] ?? '',
 ], static fn($value) => $value !== null && $value !== ''));
-$returnTo = 'entries.php' . ($returnQuery !== '' ? '?' . $returnQuery : '');
+$returnTo = route_url('entries') . ($returnQuery !== '' ? '?' . $returnQuery : '');
 
 $page_title = 'Entries';
 include __DIR__ . '/header.php';
@@ -283,7 +280,7 @@ include __DIR__ . '/header.php';
                     </td>
                     <td class="comment-cell"><?= $e['comment'] !== null && $e['comment'] !== '' ? nl2br(htmlspecialchars($e['comment'])) : '<span class="text-muted">No comment</span>' ?></td>
                     <td>
-                        <a href="entry_edit.php?id=<?= (int)$e['id'] ?>&return=<?= urlencode($returnTo) ?>" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
+                        <a href="<?= h(route_url('entry_edit', ['id' => (int)$e['id'], 'return' => $returnTo])) ?>" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
                         <form method="post" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">

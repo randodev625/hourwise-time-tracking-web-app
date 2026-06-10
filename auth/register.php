@@ -1,12 +1,10 @@
 <?php
 require __DIR__ . '/../middleware.php';
 if (!empty($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 if (empty($config['app']['allow_registration'])) {
-    header('Location: /auth/login.php');
-    exit;
+    redirect_to_route('login');
 }
 
 $err = '';
@@ -75,8 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_exception($e, 'Registration verification email failed.', ['registered_user_id' => $newUserId]);
             }
 
-            header('Location: /auth/login.php?registered=verify');
-            exit;
+            redirect_to_route('login', ['registered' => 'verify']);
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -182,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <p class="auth-switch mb-0">
-                    Already have an account? <a href="/auth/login.php">Sign in here</a>.
+                    Already have an account? <a href="<?= h(route_url('login')) ?>">Sign in here</a>.
                 </p>
             </div>
         </div>

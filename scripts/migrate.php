@@ -18,7 +18,7 @@ if (!is_file($configPath)) {
 }
 
 $config = require $configPath;
-require $root . '/helpers.php';
+require_once $root . '/helpers.php';
 
 try {
     $pdo = new PDO(

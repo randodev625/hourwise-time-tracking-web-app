@@ -5,7 +5,11 @@ require_login();
 $user_id = user_id();
 
 function redirect_clients(string $params = ''): void {
-    header('Location: clients.php' . $params);
+    $target = route_url('clients');
+    if ($params !== '') {
+        $target .= $params;
+    }
+    header('Location: ' . $target);
     exit;
 }
 
@@ -81,7 +85,7 @@ include __DIR__ . '/header.php';
                             <td><?= htmlspecialchars($client['name']) ?></td>
                             <td><?= (int)$client['is_active'] === 1 ? '<span class="badge bg-primary">Active</span>' : '<span class="badge bg-secondary">Archived</span>' ?></td>
                             <td>
-                                <a href="client_edit.php?id=<?= (int)$client['id'] ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="<?= h(route_url('client_edit', ['id' => (int)$client['id']])) ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form method="post" class="d-inline">
                                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="toggle_client">

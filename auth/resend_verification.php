@@ -1,8 +1,7 @@
 <?php
 require __DIR__ . '/../middleware.php';
 if (!empty($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 $err = '';
@@ -93,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <button class="btn btn-primary" type="submit">Send Verification Link</button>
-                        <a class="small" href="/auth/login.php">Back to login</a>
+                        <a class="small" href="<?= h(route_url('login')) ?>">Back to login</a>
                     </div>
                 </form>
             </div>

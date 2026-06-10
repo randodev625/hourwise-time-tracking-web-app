@@ -5,8 +5,7 @@ require_login();
 $user_id = user_id();
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 if ($id <= 0) {
-    header('Location: categories.php');
-    exit;
+    redirect_to_route('categories');
 }
 
 $stmt = $pdo->prepare('SELECT id, name, is_active FROM work_categories WHERE id = ? AND user_id = ? LIMIT 1');
@@ -14,8 +13,7 @@ $stmt->execute([$id, $user_id]);
 $category = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$category) {
-    header('Location: categories.php');
-    exit;
+    redirect_to_route('categories');
 }
 
 $error = '';
@@ -35,8 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $delete = $pdo->prepare('DELETE FROM work_categories WHERE id = ? AND user_id = ?');
                 $delete->execute([$id, $user_id]);
-                header('Location: categories.php?deleted=1');
-                exit;
+                redirect_to_route('categories', ['deleted' => '1']);
             }
         } else {
             $name = trim($_POST['name'] ?? '');
@@ -47,8 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $update = $pdo->prepare('UPDATE work_categories SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
                 $update->execute([$name, $is_active, $id, $user_id]);
-                header('Location: categories.php?updated=1');
-                exit;
+                redirect_to_route('categories', ['updated' => '1']);
             }
 
             $category['name'] = $name;
@@ -63,7 +59,7 @@ include __DIR__ . '/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Edit Category</h1>
-    <a href="categories.php" class="btn btn-outline-secondary btn-sm">Back to Project Categories</a>
+    <a href="<?= h(route_url('categories')) ?>" class="btn btn-outline-secondary btn-sm">Back to Project Categories</a>
 </div>
 
 <div class="card p-3">
@@ -90,7 +86,7 @@ include __DIR__ . '/header.php';
         <div class="col-12 d-flex gap-2 justify-content-between">
             <div>
                 <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
-                <a href="categories.php" class="btn btn-outline-secondary">Cancel</a>
+                <a href="<?= h(route_url('categories')) ?>" class="btn btn-outline-secondary">Cancel</a>
             </div>
             <button type="submit" name="action" value="delete" class="btn btn-outline-danger" onclick="return confirm('Delete this category? This cannot be undone.');">Delete Category</button>
         </div>

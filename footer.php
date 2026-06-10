@@ -14,7 +14,7 @@
 
             <!-- Center: Brand -->
             <div class="col-md-4 d-flex justify-content-center">
-                <a href="/dashboard.php">
+                <a href="<?= h(route_url('dashboard')) ?>">
                     <img src="/assets/img/hourwise-logo.jpg" alt="HourWise Logo" class="me-2" height="40">
                 </a>
             </div>
@@ -23,49 +23,49 @@
             <ul class="nav col-md-4 justify-content-end">
 
                 <li class="nav-item">
-                    <a href="/dashboard.php"
+                    <a href="<?= h(route_url('dashboard')) ?>"
                         class="nav-link px-2 text-body-secondary"
-                        <?= $current_page === 'dashboard.php' ? 'aria-current="page"' : '' ?>>
+                        <?= route_is('dashboard') ? 'aria-current="page"' : '' ?>>
                         Dashboard
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a href="/track.php"
+                    <a href="<?= h(route_url('track')) ?>"
                         class="nav-link px-2 text-body-secondary"
-                        <?= $current_page === 'track.php' ? 'aria-current="page"' : '' ?>>
+                        <?= route_is('track') ? 'aria-current="page"' : '' ?>>
                         Track
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a href="/entries.php"
+                    <a href="<?= h(route_url('entries')) ?>"
                         class="nav-link px-2 text-body-secondary"
-                        <?= in_array($current_page, ['entries.php', 'entry_edit.php'], true) ? 'aria-current="page"' : '' ?>>
+                        <?= route_is(['entries', 'entry_edit']) ? 'aria-current="page"' : '' ?>>
                         Entries
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a href="/clients.php"
+                    <a href="<?= h(route_url('clients')) ?>"
                         class="nav-link px-2 text-body-secondary"
-                        <?= in_array($current_page, ['clients.php', 'client_edit.php'], true) ? 'aria-current="page"' : '' ?>>
+                        <?= route_is(['clients', 'client_edit']) ? 'aria-current="page"' : '' ?>>
                         Clients
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a href="/projects.php"
+                    <a href="<?= h(route_url('projects')) ?>"
                         class="nav-link px-2 text-body-secondary"
-                        <?= in_array($current_page, ['projects.php', 'project_edit.php'], true) ? 'aria-current="page"' : '' ?>>
+                        <?= route_is(['projects', 'project_edit']) ? 'aria-current="page"' : '' ?>>
                         Projects
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a href="/account.php"
-                        class="nav-link px-2 text-body-secondary <?= $current_page === 'account.php' ? 'fw-semibold text-body' : '' ?>"
-                        <?= $current_page === 'account.php' ? 'aria-current="page"' : '' ?>>
+                    <a href="<?= h(route_url('account')) ?>"
+                        class="nav-link px-2 text-body-secondary <?= route_is('account') ? 'fw-semibold text-body' : '' ?>"
+                        <?= route_is('account') ? 'aria-current="page"' : '' ?>>
                         Account
                     </a>
                 </li>

@@ -55,13 +55,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ')->execute([$user_id, $project_id, $category_id]);
         }
 
-        header('Location: track.php');
-        exit;
+        redirect_to_route('track');
     }
 
     if (!empty($_POST['stop_timer'])) {
         $record_id = (int)$_POST['stop_timer'];
-        $returnTo = safe_redirect_path((string)($_POST['return_to'] ?? 'track.php'), 'track.php', ['track.php', 'dashboard.php']);
+        $returnTo = safe_redirect_path((string)($_POST['return_to'] ?? route_url('track')), route_url('track'), [
+            route_url('track'),
+            route_url('dashboard'),
+            '/track.php',
+            '/dashboard.php',
+        ]);
 
         $pdo->prepare('
             UPDATE time_records
@@ -70,8 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id = ? AND user_id = ? AND duration IS NULL
         ')->execute([$record_id, $user_id]);
 
-        header('Location: entry_edit.php?id=' . $record_id . '&stopped=1&return=' . urlencode($returnTo));
-        exit;
+        redirect_to_route('entry_edit', [
+            'id' => $record_id,
+            'stopped' => '1',
+            'return' => $returnTo,
+        ]);
     }
 }
 
@@ -111,7 +118,7 @@ include __DIR__ . '/header.php';
                     </span>
                     <form method="post" class="m-0">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-                        <input type="hidden" name="return_to" value="track.php">
+                        <input type="hidden" name="return_to" value="<?= h(route_url('track')) ?>">
                         <button type="submit" name="stop_timer" value="<?= $r['id'] ?>" class="btn btn-danger btn-sm">Stop</button>
                     </form>
                 </li>

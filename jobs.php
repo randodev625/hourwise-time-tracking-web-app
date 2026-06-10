@@ -1,3 +1,3 @@
 <?php
-header('Location: clients.php');
-exit;
+require __DIR__ . '/middleware.php';
+redirect_to_route('clients');

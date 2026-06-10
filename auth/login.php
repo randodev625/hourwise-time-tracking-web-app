@@ -1,8 +1,7 @@
 <?php
 require __DIR__ . '/../middleware.php';
 if (!empty($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 $err = '';
@@ -44,15 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['pending_2fa_user_id'] = (int)$u['id'];
                 $_SESSION['pending_2fa_started_at'] = time();
                 audit_log('login_2fa_required', ['user_id' => (int)$u['id']]);
-                header('Location: /auth/two_factor.php');
-                exit;
+                redirect_to_route('two_factor');
             }
 
             set_user_session($u);
             refresh_session_security();
             audit_log('login_success');
-            header('Location: /dashboard.php');
-            exit;
+            redirect_to_route('dashboard');
         }
     }
 }
@@ -123,15 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <button class="btn btn-primary" type="submit">Sign In</button>
                         <span class="d-flex flex-column align-items-end gap-1">
-                            <a class="small" href="/auth/forgot_password.php">Forgot password?</a>
-                            <a class="small" href="/auth/resend_verification.php">Resend verification email</a>
+                            <a class="small" href="<?= h(route_url('forgot_password')) ?>">Forgot password?</a>
+                            <a class="small" href="<?= h(route_url('resend_verification')) ?>">Resend verification email</a>
                         </span>
                     </div>
                 </form>
 
                 <p class="auth-switch mb-0">
                     <?php if (!empty($config['app']['allow_registration'])): ?>
-                        Don’t have an account? <a href="/auth/register.php">Register here</a>.
+                        Don’t have an account? <a href="<?= h(route_url('register')) ?>">Register here</a>.
                     <?php else: ?>
                         
                     <?php endif; ?>

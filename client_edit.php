@@ -5,8 +5,7 @@ require_login();
 $user_id = user_id();
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 if ($id <= 0) {
-    header('Location: clients.php');
-    exit;
+    redirect_to_route('clients');
 }
 
 $stmt = $pdo->prepare('SELECT id, name, is_active FROM clients WHERE id = ? AND user_id = ? LIMIT 1');
@@ -14,8 +13,7 @@ $stmt->execute([$id, $user_id]);
 $client = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$client) {
-    header('Location: clients.php');
-    exit;
+    redirect_to_route('clients');
 }
 
 $error = '';
@@ -35,8 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $delete = $pdo->prepare('DELETE FROM clients WHERE id = ? AND user_id = ?');
                 $delete->execute([$id, $user_id]);
-                header('Location: clients.php?deleted=1');
-                exit;
+                redirect_to_route('clients', ['deleted' => '1']);
             }
         } else {
             $name = trim($_POST['name'] ?? '');
@@ -47,8 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $update = $pdo->prepare('UPDATE clients SET name = ?, is_active = ? WHERE id = ? AND user_id = ?');
                 $update->execute([$name, $is_active, $id, $user_id]);
-                header('Location: clients.php?updated=1');
-                exit;
+                redirect_to_route('clients', ['updated' => '1']);
             }
 
             $client['name'] = $name;
@@ -63,7 +59,7 @@ include __DIR__ . '/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Edit Client</h1>
-    <a href="clients.php" class="btn btn-outline-secondary btn-sm">Back to Clients</a>
+    <a href="<?= h(route_url('clients')) ?>" class="btn btn-outline-secondary btn-sm">Back to Clients</a>
 </div>
 
 <div class="card p-3">
@@ -90,7 +86,7 @@ include __DIR__ . '/header.php';
         <div class="col-12 d-flex gap-2 justify-content-between">
             <div>
                 <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
-                <a href="clients.php" class="btn btn-outline-secondary">Cancel</a>
+                <a href="<?= h(route_url('clients')) ?>" class="btn btn-outline-secondary">Cancel</a>
             </div>
             <button type="submit" name="action" value="delete" class="btn btn-outline-danger" onclick="return confirm('Delete this client? This cannot be undone.');">Delete Client</button>
         </div>

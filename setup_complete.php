@@ -18,7 +18,7 @@ require_login();
         <p class="mb-4">
             Your HourWise installation is ready, and your admin account has been created successfully.
         </p>
-        <a href="/dashboard.php" class="btn btn-primary">Continue to Dashboard</a>
+        <a href="<?= h(route_url('dashboard')) ?>" class="btn btn-primary">Continue to Dashboard</a>
     </div>
 </div>
 </body>

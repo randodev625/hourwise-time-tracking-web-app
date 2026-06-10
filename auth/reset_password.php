@@ -1,8 +1,7 @@
 <?php
 require __DIR__ . '/../middleware.php';
 if (!empty($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 $token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
@@ -27,8 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 if (reset_user_password($pdo, $token, $password)) {
                     audit_log('password_reset_completed', ['reset_user_id' => (int)$record['user_id']]);
-                    header('Location: /auth/login.php?reset=1');
-                    exit;
+                    redirect_to_route('login', ['reset' => '1']);
                 }
                 $err = 'This reset link is invalid or has expired.';
             } catch (Throwable $e) {
@@ -69,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php if (!$record): ?>
                     <div class="alert alert-danger small mb-3">This reset link is invalid or has expired.</div>
-                    <p class="mb-0"><a href="/auth/forgot_password.php">Request a new password reset email</a>.</p>
+                    <p class="mb-0"><a href="<?= h(route_url('forgot_password')) ?>">Request a new password reset email</a>.</p>
                 <?php else: ?>
                     <?php if ($err): ?>
                         <div class="alert alert-danger small"><?= h($err) ?></div>
@@ -91,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center gap-3">
-                            <a class="small" href="/auth/login.php">Back to login</a>
+                            <a class="small" href="<?= h(route_url('login')) ?>">Back to login</a>
                             <button class="btn btn-primary" type="submit">Reset Password</button>
                         </div>
                     </form>

@@ -2,8 +2,9 @@
 declare(strict_types=1);
 
 $config = require __DIR__ . '/config.php';
-require __DIR__ . '/helpers.php';
+require_once __DIR__ . '/helpers.php';
 start_session($config);
+redirect_to_canonical_route_if_needed();
 
 $setupEnabled = (bool)($config['setup']['enabled'] ?? false);
 
@@ -118,8 +119,7 @@ try {
 }
 
 if (!$setupRequired && !$setupEnabled) {
-    header('Location: /');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -265,8 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                         refresh_session_security();
 
-                        header('Location: /setup_complete.php');
-                        exit;
+                        redirect_to_route('setup_complete');
                     } catch (Throwable $e) {
                         if ($pdo->inTransaction()) {
                             $pdo->rollBack();

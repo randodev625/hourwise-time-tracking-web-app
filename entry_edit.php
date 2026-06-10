@@ -8,11 +8,10 @@ $utcTz = new DateTimeZone('UTC');
 
 // For security, we only allow numeric IDs and validate them before querying the database.
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
-$returnTo = safe_redirect_path((string)($_GET['return'] ?? $_POST['return'] ?? 'entries.php'));
+$returnTo = safe_redirect_path((string)($_GET['return'] ?? $_POST['return'] ?? route_url('entries')), route_url('entries'));
 $stopped = isset($_GET['stopped']) && $_GET['stopped'] === '1';
 if ($id <= 0) {
-    header('Location: entries.php');
-    exit;
+    redirect_to_route('entries');
 }
 
 // Fetch the entry to edit, ensuring it belongs to the current user. We also join related tables to get project, client, and category names for display.
@@ -29,8 +28,7 @@ $stmt->execute([$id, $user_id]);
 $entry = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$entry) {
-    header('Location: entries.php');
-    exit;
+    redirect_to_route('entries');
 }
 
 // Fetch all projects and categories for the dropdowns, ensuring they belong to the current user. We also order them by active status and name for better UX.
@@ -133,7 +131,7 @@ include __DIR__ . '/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Edit Time Entry</h1>
-    <a href="<?= htmlspecialchars($returnTo !== '' ? $returnTo : 'entries.php') ?>" class="btn btn-outline-secondary btn-sm">Back</a>
+    <a href="<?= htmlspecialchars($returnTo !== '' ? $returnTo : route_url('entries')) ?>" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 
 <div class="card p-3">
@@ -193,7 +191,7 @@ include __DIR__ . '/header.php';
         <div class="col-12 d-flex gap-2 flex-wrap juswtify-content-between">
             <div class="me-auto d-flex gap-2">
                 <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
-                <a href="<?= htmlspecialchars($returnTo !== '' ? $returnTo : 'entries.php') ?>" class="btn btn-outline-secondary">Cancel</a>
+                <a href="<?= htmlspecialchars($returnTo !== '' ? $returnTo : route_url('entries')) ?>" class="btn btn-outline-secondary">Cancel</a>
             </div>
             <button type="submit" name="action" value="delete" class="btn btn-outline-danger" formnovalidate onclick="return confirm('Delete this entry permanently?');">Delete Entry</button>
         </div>

@@ -222,7 +222,7 @@ include __DIR__ . '/header.php';
             </tbody>
         </table>
         <div class="d-grid">
-            <a href="entries.php" class="btn btn-outline-secondary btn-sm">All Entries</a>
+            <a href="<?= h(route_url('entries')) ?>" class="btn btn-outline-secondary btn-sm">All Entries</a>
         </div>
     <?php else: ?>
         <p class="text-muted">No entries yet.</p>
@@ -231,7 +231,7 @@ include __DIR__ . '/header.php';
 
 <div class="card mb-4 p-3">
     <h2 class="h5 mb-3">Start a Timer</h2>
-    <form method="post" action="track.php" class="row g-2 align-items-end">
+    <form method="post" action="<?= h(route_url('track')) ?>" class="row g-2 align-items-end">
         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
         <div class="col-md-6">
             <label for="dashboard_project_id" class="form-label">Project</label>
@@ -271,9 +271,9 @@ include __DIR__ . '/header.php';
                         ?>
                         <span class="timer badge bg-primary ms-2" data-start-ts="<?= $ts ?>">0:00</span>
                     </span>
-                    <form method="post" action="track.php" class="m-0">
+                    <form method="post" action="<?= h(route_url('track')) ?>" class="m-0">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-                        <input type="hidden" name="return_to" value="dashboard.php">
+                        <input type="hidden" name="return_to" value="<?= h(route_url('dashboard')) ?>">
                         <button type="submit" name="stop_timer" value="<?= $r['id'] ?>" class="btn btn-danger btn-sm">Stop</button>
                     </form>
                 </li>

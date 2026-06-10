@@ -5,8 +5,7 @@ require_login();
 $user_id = user_id();
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 if ($id <= 0) {
-    header('Location: projects.php');
-    exit;
+    redirect_to_route('projects');
 }
 
 $stmt = $pdo->prepare('SELECT id, client_id, name, is_active FROM projects WHERE id = ? AND user_id = ? LIMIT 1');
@@ -14,8 +13,7 @@ $stmt->execute([$id, $user_id]);
 $project = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$project) {
-    header('Location: projects.php');
-    exit;
+    redirect_to_route('projects');
 }
 
 $clientsStmt = $pdo->prepare('SELECT id, name, is_active FROM clients WHERE user_id = ? ORDER BY is_active DESC, name');
@@ -39,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $delete = $pdo->prepare('DELETE FROM projects WHERE id = ? AND user_id = ?');
                 $delete->execute([$id, $user_id]);
-                header('Location: projects.php?deleted=1');
-                exit;
+                redirect_to_route('projects', ['deleted' => '1']);
             }
         } else {
             $client_id = (int)($_POST['client_id'] ?? 0);
@@ -59,8 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $update = $pdo->prepare('UPDATE projects SET client_id = ?, name = ?, is_active = ? WHERE id = ? AND user_id = ?');
                     $update->execute([$client_id, $name, $is_active, $id, $user_id]);
-                    header('Location: projects.php?updated=1');
-                    exit;
+                    redirect_to_route('projects', ['updated' => '1']);
                 }
             }
 
@@ -77,7 +73,7 @@ include __DIR__ . '/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Edit Project</h1>
-    <a href="projects.php" class="btn btn-outline-secondary btn-sm">Back to Projects</a>
+    <a href="<?= h(route_url('projects')) ?>" class="btn btn-outline-secondary btn-sm">Back to Projects</a>
 </div>
 
 <div class="card p-3">
@@ -116,7 +112,7 @@ include __DIR__ . '/header.php';
         <div class="col-12 d-flex gap-2 justify-content-between">
             <div>
                 <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
-                <a href="projects.php" class="btn btn-outline-secondary">Cancel</a>
+                <a href="<?= h(route_url('projects')) ?>" class="btn btn-outline-secondary">Cancel</a>
             </div>
             <button type="submit" name="action" value="delete" class="btn btn-outline-danger" onclick="return confirm('Delete this project? This cannot be undone.');">Delete Project</button>
 

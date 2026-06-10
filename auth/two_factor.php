@@ -1,23 +1,20 @@
 <?php
 require __DIR__ . '/../middleware.php';
 if (!empty($_SESSION['user'])) {
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 $pendingUserId = (int)($_SESSION['pending_2fa_user_id'] ?? 0);
 $pendingStartedAt = (int)($_SESSION['pending_2fa_started_at'] ?? 0);
 if ($pendingUserId <= 0 || $pendingStartedAt <= 0 || $pendingStartedAt < time() - 600) {
     unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_started_at']);
-    header('Location: /auth/login.php');
-    exit;
+    redirect_to_route('login');
 }
 
 $settings = two_factor_settings($pdo, $pendingUserId);
 if (!$settings) {
     two_factor_complete_login($pdo, $pendingUserId);
-    header('Location: /dashboard.php');
-    exit;
+    redirect_to_route('dashboard');
 }
 
 $err = '';
@@ -40,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 audit_log('two_factor_recovery_code_used', ['user_id' => $pendingUserId]);
             }
             two_factor_complete_login($pdo, $pendingUserId);
-            header('Location: /dashboard.php');
-            exit;
+            redirect_to_route('dashboard');
         }
 
         auth_rate_limit_record_attempt($pdo, 'two_factor', (string)$pendingUserId);
@@ -93,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <button class="btn btn-primary" type="submit">Verify</button>
-                        <a class="small" href="/auth/logout.php">Cancel login</a>
+                        <a class="small" href="<?= h(route_url('logout')) ?>">Cancel login</a>
                     </div>
                 </form>
             </div>

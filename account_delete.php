@@ -12,8 +12,7 @@ $user = $stmt->fetch();
 
 if (!$user) {
     clear_auth_session();
-    header('Location: /auth/login.php');
-    exit;
+    redirect_to_route('login');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             delete_user_account($pdo, (int)$userId);
             audit_log('account_deleted', ['deleted_user_id' => (int)$userId]);
             clear_auth_session();
-            header('Location: /auth/login.php?deleted=1');
-            exit;
+            redirect_to_route('login', ['deleted' => '1']);
         } catch (Throwable $e) {
             log_exception($e, 'Account deletion failed.', ['user_id' => (int)$userId]);
             $errors[] = 'Something went wrong while deleting your account.';
@@ -89,7 +87,7 @@ include __DIR__ . '/header.php';
 
                     <div class="d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-danger">Delete My Account</button>
-                        <a href="/account.php" class="btn btn-outline-secondary">Cancel</a>
+                        <a href="<?= h(route_url('account')) ?>" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
             </div>

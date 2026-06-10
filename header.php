@@ -1,12 +1,10 @@
 <?php
-$current_page = basename($_SERVER['PHP_SELF']);
-$manage_pages = ['clients.php', 'projects.php', 'categories.php', 'client_edit.php', 'project_edit.php', 'category_edit.php'];
-$is_manage_active = in_array($current_page, $manage_pages, true);
+$isManageActive = route_is(['clients', 'client_edit', 'projects', 'project_edit', 'categories', 'category_edit']);
 $user = current_user();
 $avatarUrl = avatar_url($user['avatar_path'] ?? '');
 $displayName = user_display_name($user);
 $initials = user_initials($user);
-$is_account_active = in_array($current_page, ['account.php'], true);
+$isAccountActive = route_is('account');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +31,7 @@ $is_account_active = in_array($current_page, ['account.php'], true);
 <body class="container pt-5">
     <nav class="navbar navbar-expand-lg navbar-light mb-5">
         <div class="container-fluid">
-            <a class="navbar-brand me-3" href="/dashboard.php">
+            <a class="navbar-brand me-3" href="<?= h(route_url('dashboard')) ?>">
                 <img src="/assets/img/hourwise-logo.jpg" alt="James June Media Logo">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -44,26 +42,26 @@ $is_account_active = in_array($current_page, ['account.php'], true);
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
                     <li class="nav-item me-3">
-                        <a class="nav-link <?= $current_page === 'dashboard.php' ? 'active' : '' ?>" href="/dashboard.php">Dashboard</a>
+                        <a class="nav-link <?= route_is('dashboard') ? 'active' : '' ?>" href="<?= h(route_url('dashboard')) ?>">Dashboard</a>
                     </li>
                     <li class="nav-item me-3">
-                        <a class="nav-link <?= $current_page === 'track.php' ? 'active' : '' ?>" href="/track.php">Track Time</a>
+                        <a class="nav-link <?= route_is('track') ? 'active' : '' ?>" href="<?= h(route_url('track')) ?>">Track Time</a>
                     </li>
                     <li class="nav-item me-3">
-                        <a class="nav-link <?= in_array($current_page, ['entries.php', 'entry_edit.php'], true) ? 'active' : '' ?>" href="/entries.php">Entries</a>
+                        <a class="nav-link <?= route_is(['entries', 'entry_edit']) ? 'active' : '' ?>" href="<?= h(route_url('entries')) ?>">Entries</a>
                     </li>
                     <li class="nav-item dropdown me-3">
-                        <a class="nav-link dropdown-toggle <?= $is_manage_active ? 'active' : '' ?>" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle <?= $isManageActive ? 'active' : '' ?>" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Manage
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="manageDropdown">
-                            <li><a class="dropdown-item <?= in_array($current_page, ['clients.php', 'client_edit.php'], true) ? 'active' : '' ?>" href="/clients.php">Clients</a></li>
-                            <li><a class="dropdown-item <?= in_array($current_page, ['projects.php', 'project_edit.php'], true) ? 'active' : '' ?>" href="/projects.php">Projects</a></li>
-                            <li><a class="dropdown-item <?= in_array($current_page, ['categories.php', 'category_edit.php'], true) ? 'active' : '' ?>" href="/categories.php">Project Categories</a></li>
+                            <li><a class="dropdown-item <?= route_is(['clients', 'client_edit']) ? 'active' : '' ?>" href="<?= h(route_url('clients')) ?>">Clients</a></li>
+                            <li><a class="dropdown-item <?= route_is(['projects', 'project_edit']) ? 'active' : '' ?>" href="<?= h(route_url('projects')) ?>">Projects</a></li>
+                            <li><a class="dropdown-item <?= route_is(['categories', 'category_edit']) ? 'active' : '' ?>" href="<?= h(route_url('categories')) ?>">Project Categories</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle account-toggle <?= $is_account_active ? 'active' : '' ?>" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle account-toggle <?= $isAccountActive ? 'active' : '' ?>" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <?php if ($avatarUrl): ?>
                                 <img src="<?= h($avatarUrl) ?>" alt="<?= h($displayName) ?>" class="nav-avatar-img">
                             <?php else: ?>
@@ -72,12 +70,12 @@ $is_account_active = in_array($current_page, ['account.php'], true);
                             <span class="d-none d-lg-inline ms-2"><?= h($displayName) ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                            <li><a class="dropdown-item <?= $is_account_active ? 'active' : '' ?>" href="/account.php">Manage Account</a></li>
+                            <li><a class="dropdown-item <?= $isAccountActive ? 'active' : '' ?>" href="<?= h(route_url('account')) ?>">Manage Account</a></li>
                             <?php if (is_admin_user()): ?>
-                                <li><a class="dropdown-item <?= $current_page === 'admin_settings.php' ? 'active' : '' ?>" href="/admin_settings.php">Admin Settings</a></li>
+                                <li><a class="dropdown-item <?= route_is('admin_settings') ? 'active' : '' ?>" href="<?= h(route_url('admin_settings')) ?>">Admin Settings</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/auth/logout.php">Logout</a></li>
+                            <li><a class="dropdown-item" href="<?= h(route_url('logout')) ?>">Logout</a></li>
                         </ul>
                     </li>
                 </ul>

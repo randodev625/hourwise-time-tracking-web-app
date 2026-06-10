@@ -1,22 +1,21 @@
 <?php
 $config = require __DIR__ . '/config.php';
-require __DIR__ . '/helpers.php';
+require_once __DIR__ . '/helpers.php';
 start_session($config);
+redirect_to_canonical_route_if_needed();
 
-$currentScript = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$isSetupRoute = current_route_name() === 'setup';
 
 $hasDbConfig = trim((string)($config['db']['dsn'] ?? '')) !== ''
     && trim((string)($config['db']['user'] ?? '')) !== '';
 $hasAppConfig = trim((string)($config['app']['base_url'] ?? '')) !== '';
 
-if ($currentScript !== 'setup.php' && (!$hasDbConfig || !$hasAppConfig)) {
-    header('Location: /setup.php');
-    exit;
+if (!$isSetupRoute && (!$hasDbConfig || !$hasAppConfig)) {
+    redirect_to_route('setup');
 }
 
 require __DIR__ . '/db.php';
 
-if ($currentScript !== 'setup.php' && app_setup_required($pdo)) {
-    header('Location: /setup.php');
-    exit;
+if (!$isSetupRoute && app_setup_required($pdo)) {
+    redirect_to_route('setup');
 }

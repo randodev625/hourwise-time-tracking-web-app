@@ -16,10 +16,318 @@ function start_session(array $config): void {
     }
 }
 
+function normalize_app_path(string $path): string {
+    $path = str_replace('\\', '/', trim($path));
+    if ($path === '') {
+        return '/';
+    }
+
+    if (!str_starts_with($path, '/')) {
+        $path = '/' . $path;
+    }
+
+    $path = preg_replace('#/+#', '/', $path) ?? '/';
+
+    if ($path === '/index.php') {
+        return '/';
+    }
+
+    if (str_starts_with($path, '/index.php/')) {
+        $path = substr($path, strlen('/index.php'));
+        if ($path === false || $path === '') {
+            return '/';
+        }
+    }
+
+    if ($path !== '/') {
+        $path = rtrim($path, '/');
+    }
+
+    return $path !== '' ? $path : '/';
+}
+
+function request_path(): string {
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+    $path = (string)(parse_url($requestUri, PHP_URL_PATH) ?? '/');
+    return normalize_app_path($path);
+}
+
+function app_routes(): array {
+    static $routes = null;
+    if ($routes === null) {
+        $routes = require __DIR__ . '/routes.php';
+    }
+
+    return $routes;
+}
+
+function app_routes_by_name(): array {
+    static $routesByName = null;
+    if ($routesByName !== null) {
+        return $routesByName;
+    }
+
+    $routesByName = [];
+    foreach (app_routes() as $path => $route) {
+        $name = (string)($route['name'] ?? '');
+        if ($name === '') {
+            continue;
+        }
+
+        $route['path'] = $path;
+        $routesByName[$name] = $route;
+    }
+
+    return $routesByName;
+}
+
+function route_canonical_name(array $route): string {
+    return (string)($route['canonical'] ?? $route['name'] ?? '');
+}
+
+function route_param_names(string $path): array {
+    preg_match_all('/\{([A-Za-z_][A-Za-z0-9_]*)\}/', $path, $matches);
+    return $matches[1] ?? [];
+}
+
+function route_is_dynamic_path(string $path): bool {
+    return str_contains($path, '{') && str_contains($path, '}');
+}
+
+function match_dynamic_route_path(string $routePath, string $path): ?array {
+    $normalizedRoutePath = normalize_app_path($routePath);
+    $normalizedPath = normalize_app_path($path);
+
+    $routeSegments = explode('/', trim($normalizedRoutePath, '/'));
+    $pathSegments = explode('/', trim($normalizedPath, '/'));
+
+    if (count($routeSegments) !== count($pathSegments)) {
+        return null;
+    }
+
+    $params = [];
+    foreach ($routeSegments as $index => $routeSegment) {
+        $pathSegment = $pathSegments[$index] ?? '';
+
+        if (preg_match('/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/', $routeSegment, $matches)) {
+            $params[$matches[1]] = rawurldecode($pathSegment);
+            continue;
+        }
+
+        if ($routeSegment !== $pathSegment) {
+            return null;
+        }
+    }
+
+    return $params;
+}
+
+function resolve_route(string $path): ?array {
+    $path = normalize_app_path($path);
+    $routes = app_routes();
+
+    foreach ($routes as $routePath => $route) {
+        if (route_is_dynamic_path($routePath)) {
+            continue;
+        }
+
+        $normalizedRoutePath = normalize_app_path($routePath);
+        if ($normalizedRoutePath !== $path) {
+            continue;
+        }
+
+        $route['path'] = $normalizedRoutePath;
+        $route['params'] = [];
+        return $route;
+    }
+
+    foreach ($routes as $routePath => $route) {
+        if (!route_is_dynamic_path($routePath)) {
+            continue;
+        }
+
+        $params = match_dynamic_route_path($routePath, $path);
+        if ($params === null) {
+            continue;
+        }
+
+        $route['path'] = normalize_app_path($routePath);
+        $route['params'] = $params;
+        return $route;
+    }
+
+    return null;
+}
+
+function app_routes_by_script_path(): array {
+    static $routesByScriptPath = null;
+    if ($routesByScriptPath !== null) {
+        return $routesByScriptPath;
+    }
+
+    $routesByScriptPath = [];
+    $baseDir = str_replace('\\', '/', __DIR__);
+
+    foreach (app_routes_by_name() as $route) {
+        $file = str_replace('\\', '/', (string)($route['file'] ?? ''));
+        if ($file === '' || !str_starts_with($file, $baseDir)) {
+            continue;
+        }
+
+        if ((string)($route['name'] ?? '') !== route_canonical_name($route)) {
+            continue;
+        }
+
+        $scriptPath = substr($file, strlen($baseDir));
+        if ($scriptPath === false || $scriptPath === '') {
+            continue;
+        }
+
+        $scriptPath = normalize_app_path($scriptPath);
+        $routesByScriptPath[$scriptPath] = $route;
+    }
+
+    return $routesByScriptPath;
+}
+
+function current_route(): ?array {
+    $routeName = trim((string)($_SERVER['HOURWISE_ROUTE_NAME'] ?? ''));
+    if ($routeName !== '') {
+        $route = app_routes_by_name()[$routeName] ?? null;
+        if ($route !== null && !isset($route['params'])) {
+            $route['params'] = (array)($_SERVER['HOURWISE_ROUTE_PARAMS'] ?? []);
+            $route['path'] = (string)($route['path'] ?? $_SERVER['HOURWISE_ROUTE_PATH'] ?? '');
+        }
+        return $route;
+    }
+
+    $path = request_path();
+    $route = resolve_route($path);
+    if ($route !== null) {
+        return $route;
+    }
+
+    $scriptCandidates = [
+        normalize_app_path((string)($_SERVER['PHP_SELF'] ?? '')),
+        normalize_app_path((string)($_SERVER['SCRIPT_NAME'] ?? '')),
+        $path,
+    ];
+
+    $routesByScriptPath = app_routes_by_script_path();
+    foreach ($scriptCandidates as $candidate) {
+        if (isset($routesByScriptPath[$candidate])) {
+            return $routesByScriptPath[$candidate];
+        }
+    }
+
+    return null;
+}
+
+function current_route_name(): string {
+    $route = current_route();
+    if ($route === null) {
+        return '';
+    }
+
+    return route_canonical_name($route);
+}
+
+function current_route_path(): string {
+    $route = current_route();
+    return (string)($route['path'] ?? request_path());
+}
+
+function route_is(string|array $names): bool {
+    $current = current_route_name();
+    if ($current === '') {
+        return false;
+    }
+
+    if (is_string($names)) {
+        return $current === $names;
+    }
+
+    return in_array($current, $names, true);
+}
+
+function route_url(string $name, array $query = []): string {
+    $route = app_routes_by_name()[$name] ?? null;
+    $path = (string)($route['path'] ?? '/');
+
+    foreach (route_param_names($path) as $paramName) {
+        if (!array_key_exists($paramName, $query)) {
+            continue;
+        }
+
+        $replacement = rawurlencode((string)$query[$paramName]);
+        $path = str_replace('{' . $paramName . '}', $replacement, $path);
+        unset($query[$paramName]);
+    }
+
+    if ($query !== []) {
+        $path .= '?' . http_build_query($query);
+    }
+
+    return $path;
+}
+
+function redirect_to_route(string $name, array $query = [], int $status = 302): void {
+    header('Location: ' . route_url($name, $query), true, $status);
+    exit;
+}
+
+function should_redirect_to_canonical_route(): bool {
+    $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (!in_array($method, ['GET', 'HEAD'], true)) {
+        return false;
+    }
+
+    $route = current_route();
+    if ($route === null) {
+        return false;
+    }
+
+    $requestedPath = request_path();
+    $canonicalRouteName = current_route_name();
+    if ($canonicalRouteName === '') {
+        return false;
+    }
+
+    $canonicalUrl = route_url($canonicalRouteName, array_merge((array)($route['params'] ?? []), $_GET));
+    if (str_contains($canonicalUrl, '{') || str_contains($canonicalUrl, '}')) {
+        return false;
+    }
+
+    $canonicalPath = normalize_app_path((string)(parse_url($canonicalUrl, PHP_URL_PATH) ?? ''));
+    if ($canonicalPath === '' || $requestedPath === $canonicalPath) {
+        return false;
+    }
+
+    return str_ends_with($requestedPath, '.php') || !route_is_dynamic_path((string)($route['path'] ?? ''));
+}
+
+function redirect_to_canonical_route_if_needed(int $status = 302): void {
+    if (!should_redirect_to_canonical_route()) {
+        return;
+    }
+
+    $route = current_route();
+    if ($route === null) {
+        return;
+    }
+
+    $routeName = current_route_name();
+    if ($routeName === '') {
+        return;
+    }
+
+    $redirectToQuery = array_merge((array)($route['params'] ?? []), $_GET);
+    redirect_to_route($routeName, $redirectToQuery, $status);
+}
+
 function require_login(): void {
     if (empty($_SESSION['user'])) {
-        header('Location: /auth/login.php');
-        exit;
+        redirect_to_route('login');
     }
 }
 
@@ -387,33 +695,42 @@ function two_factor_complete_login(PDO $pdo, int $userId): ?array {
     return $user;
 }
 
-function safe_redirect_path(string $value, string $fallback = 'entries.php', array $allowedPaths = []): string {
+function safe_redirect_path(string $value, string $fallback = '/entries', array $allowedPaths = []): string {
     $value = trim($value);
+    $normalizedFallback = normalize_app_path($fallback);
     if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
-        return $fallback;
+        return $normalizedFallback;
     }
 
     if (str_contains($value, '\\') || str_starts_with($value, '//')) {
-        return $fallback;
+        return $normalizedFallback;
     }
 
     $parts = parse_url($value);
     if ($parts === false || isset($parts['scheme']) || isset($parts['host'])) {
-        return $fallback;
+        return $normalizedFallback;
     }
 
     $path = (string)($parts['path'] ?? '');
-    $path = ltrim($path, '/');
     if ($path === '' || str_contains($path, '..')) {
-        return $fallback;
+        return $normalizedFallback;
     }
 
-    $allowedPaths = $allowedPaths ?: ['entries.php', 'track.php', 'dashboard.php'];
-    if (!in_array($path, $allowedPaths, true)) {
-        return $fallback;
+    $normalizedPath = normalize_app_path($path);
+    $allowedPaths = $allowedPaths ?: [
+        '/entries',
+        '/track',
+        '/dashboard',
+        '/entries.php',
+        '/track.php',
+        '/dashboard.php',
+    ];
+    $normalizedAllowedPaths = array_map(static fn(string $allowedPath): string => normalize_app_path($allowedPath), $allowedPaths);
+    if (!in_array($normalizedPath, $normalizedAllowedPaths, true)) {
+        return $normalizedFallback;
     }
 
-    $safePath = $path;
+    $safePath = $normalizedPath;
     if (isset($parts['query']) && $parts['query'] !== '') {
         $safePath .= '?' . $parts['query'];
     }
@@ -996,7 +1313,7 @@ function send_account_verification_for_user(PDO $pdo, int $userId): void {
     }
 
     $rawToken = issue_email_verification_token($pdo, $userId);
-    $verificationUrl = base_url('/auth/verify_email.php?token=' . urlencode($rawToken));
+    $verificationUrl = base_url(route_url('verify_email', ['token' => $rawToken]));
     send_account_verification_email($targetEmail, (string)($user['display_name'] ?? ''), $verificationUrl);
 }
 
@@ -1093,7 +1410,7 @@ function issue_password_reset_token(PDO $pdo, string $email): void {
         throw $e;
     }
 
-    $resetUrl = base_url('/auth/reset_password.php?token=' . urlencode($rawToken));
+    $resetUrl = base_url(route_url('reset_password', ['token' => $rawToken]));
     send_password_reset_email((string)$user['email'], (string)($user['display_name'] ?? ''), $resetUrl);
 }
 

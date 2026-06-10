@@ -26,7 +26,7 @@ $returnQuery = http_build_query(array_filter([
     'start_date' => $filters['start_date'] ?? '',
     'end_date' => $filters['end_date'] ?? '',
 ], static fn($value) => $value !== null && $value !== ''));
-$returnTo = 'entries.php' . ($returnQuery !== '' ? '?' . $returnQuery : '');
+$returnTo = route_url('entries') . ($returnQuery !== '' ? '?' . $returnQuery : '');
 
 foreach ($entries as $e):
 ?>
@@ -45,8 +45,8 @@ foreach ($entries as $e):
     </td>
     <td><?= $e['comment'] !== null && $e['comment'] !== '' ? nl2br(htmlspecialchars($e['comment'])) : '<span class="text-muted">No comment</span>' ?></td>
     <td>
-        <a href="entry_edit.php?id=<?= (int)$e['id'] ?>&return=<?= urlencode($returnTo) ?>" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
-        <form method="post" class="d-inline" action="entries.php<?= $returnQuery !== '' ? '?' . htmlspecialchars($returnQuery) : '' ?>">
+        <a href="<?= h(route_url('entry_edit', ['id' => (int)$e['id'], 'return' => $returnTo])) ?>" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
+        <form method="post" class="d-inline" action="<?= h(route_url('entries')) ?><?= $returnQuery !== '' ? '?' . htmlspecialchars($returnQuery) : '' ?>">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
             <?php /*<button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('Delete this entry?');">Delete</button> */ ?>

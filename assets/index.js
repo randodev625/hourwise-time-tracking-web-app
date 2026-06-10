@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // -----------------------------
     // Autocomplete helpers
-    // Expects filter_lookup.php?type=project|client|category&q=...
+    // Expects /api/filter-lookup?type=project|client|category&q=...
     // If suggestion containers do not exist in the HTML,
     // they are created automatically.
     // -----------------------------
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const res = await fetch(
-                    `filter_lookup.php?type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}`,
+                    `/api/filter-lookup?type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}`,
                     { signal: controller.signal }
                 );
 
@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(
-                `entries_ajax.php?offset=${offset}&project_name=${projectName}&client_name=${clientName}&category_name=${categoryName}&start_date=${startDate}&end_date=${endDate}`
+                `/api/entries?offset=${offset}&project_name=${projectName}&client_name=${clientName}&category_name=${categoryName}&start_date=${startDate}&end_date=${endDate}`
             );
 
             if (!res.ok) {

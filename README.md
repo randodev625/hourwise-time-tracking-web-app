@@ -36,7 +36,7 @@ HourWise is a time tracking and timesheet app for freelancers who want a straigh
 3. Visit your site's URL to start setup.
 
 ### Browser-Based Installer
-- On a fresh install, HourWise automatically redirects to `/setup.php`.
+- On a fresh install, HourWise automatically redirects to `/setup`.
 - Enter database, app URL, and timezone details to generate the external secrets files.
 - SMTP is optional during setup and can be configured later in Admin Settings.
 - Choose whether to allow self-registration during setup.
@@ -60,12 +60,14 @@ HourWise is a time tracking and timesheet app for freelancers who want a straigh
 - QRCode.js (local vendor file): `/assets/vendor/qrcodejs/qrcode.min.js`
 
 ## App Structure
-- `middleware.php`: bootstraps config, helpers, session, DB.
+- `index.php`: front controller that resolves the request path and dispatches routed requests.
+- `routes.php`: route table for canonical app URLs, legacy aliases, and API-style endpoints.
+- `middleware.php`: bootstraps config, helpers, session, DB, and canonical redirects.
 - `config.php`: runtime config loaded from external secrets.
 - `db.php`: PDO connection.
-- `.htaccess`: Apache/LiteSpeed defaults for 404 handling and baseline security headers.
+- `.htaccess`: Apache/LiteSpeed rewrite rules for pretty URLs plus baseline security headers.
 - `helpers.php`: shared auth, CSRF, rate limiting, timezone, formatting, mail, logging, account delete, and utility functions.
-- `auth/*.php`: login/register/forgot/reset/logout.
+- `auth/*.php`: auth handlers rendered through the front controller routes.
 - `dashboard.php`: weekly totals, donut + trend charts, quick timer actions.
 - `track.php`: running timers and start/stop.
 - `entries.php`, `entries_ajax.php`, `entry_edit.php`: listing/filtering/loading/editing/exporting entries.
@@ -85,14 +87,15 @@ The repository includes these SQL migrations:
 - `migrations/2026-06-02_add_auth_rate_limits.sql`: adds the auth rate limiting table used by login, password reset, and 2FA flows.
 
 ## Request Flow
-1. Page includes `middleware.php`.
-2. `middleware.php` loads:
+1. Apache/LiteSpeed rewrites clean application URLs through `index.php`.
+2. The matched handler includes `middleware.php`.
+3. `middleware.php` loads:
    - `config.php`
    - `helpers.php`
    - session via `start_session(...)`
    - DB via `db.php`
-3. Protected pages call `require_login()`.
-4. Page logic runs queries and renders HTML.
+4. Protected pages call `require_login()`.
+5. Page logic runs queries and renders HTML.
 
 ## Data Model Overview
 - `users` (includes `timezone`, `avatar_path`, `pending_email`, password hash)
@@ -231,17 +234,18 @@ HourWise includes a layered set of protections designed to safeguard user accoun
 - Host or CDN settings should be used for any domain-wide transport policy such as HSTS.
 
 ## Admin Controls
-- `/admin_settings.php` is accessible only to the first user account (user ID `1`).
+- `/admin/settings` is accessible only to the first user account (user ID `1`).
 - Admin Settings includes:
   - SMTP mail configuration
   - Global registration toggle to allow or disallow other users to register accounts (`allow_registration`)
   - Read-only diagnostics for error display, PHP logging, `expose_php`, app/audit log writability, and secure session cookies
-- When registration is disabled, `/auth/register.php` redirects to login and registration links are hidden.
+- When registration is disabled, `/register` redirects to login and registration links are hidden.
 - When registration is enabled, new self-registered accounts must verify their email before login. Configuring SMTP first may help verification emails be delivered reliably.
 
 ## Deployment Notes
-- For Apache/LiteSpeed, the root `.htaccess` provides baseline security headers and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.
+- For Apache/LiteSpeed, the root `.htaccess` provides pretty-URL rewrite rules plus baseline security headers, and the upload directories include `.htaccess` rules that block PHP-like script execution and directory listing.
 - Other hosts, such as Nginx, Caddy, or CDN-fronted deployments, must configure equivalent headers and upload protections in their own server layer.
+- Pretty URLs depend on server rewrites. On Apache/LiteSpeed, ensure `mod_rewrite` or the equivalent rewrite engine is enabled and that `.htaccess` overrides are allowed.
 - The database bootstrap uses a version-aware PDO MySQL init-command option so the app runs cleanly on PHP 8.3, 8.4, and 8.5.
 - `Strict-Transport-Security` is intentionally not enabled in the repository `.htaccess`; configure HSTS only after confirming HTTPS coverage for the production domain.
 - The included `robots.txt` disallows all crawling by default, which is appropriate for an authenticated web app. It is a crawler hint, not a security control.
