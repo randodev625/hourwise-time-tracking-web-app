@@ -257,7 +257,7 @@ HourWise is an independent project built to help freelancers track time, produce
 
 If you find it useful, a small donation helps support continued development, maintenance, documentation, and security improvements.
 
-[Donate to support HourWise](https://www.paypal.com/donate/?hosted_button_id=UMQX59YYKESZN)
+[![Support HourWise](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=UMQX59YYKESZN)
 
 ## License
 HourWise by Jim Kulakowski is licensed under the **Elastic License 2.0 (ELv2)**.
