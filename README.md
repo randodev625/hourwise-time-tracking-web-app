@@ -17,7 +17,7 @@ If HourWise is useful to you, consider supporting ongoing development:
 - Admin settings (admin-only): SMTP config, registration access toggle, and read-only diagnostics
 - Client/Project/Category management
 - Start/stop timers and edit entries
-- Dashboard summaries and charts
+- Dashboard date-range filtering, KPI summary cards, quick links, and charts
 - CSV export
 - Account management (profile, avatar, password, delete account)
 - Per-user timezone support
@@ -62,9 +62,11 @@ If HourWise is useful to you, consider supporting ongoing development:
 - Font Awesome (self-hosted vendor files)
 - Chart.js (local vendor file): `/assets/vendor/chartjs/chart.umd.min.js`
 - QRCode.js (local vendor file): `/assets/vendor/qrcodejs/qrcode.min.js`
+- Centralized CSS custom properties in `assets/style.css` for app theming, button variants, border radius, badges, and chart palette values
 
 ## App Structure
 - `index.php`: front controller that resolves the request path and dispatches routed requests.
+- `assets/style.css`: centralized theme tokens plus shared styling for buttons, badges, forms, dashboard cards, and charts.
 - `inc/core/routes.php`: route table for canonical app URLs, legacy aliases, and API-style endpoints.
 - `inc/core/middleware.php`: bootstraps config, helpers, session, DB, and canonical redirects.
 - `inc/core/config.php`: runtime config loaded from external secrets.
@@ -72,6 +74,7 @@ If HourWise is useful to you, consider supporting ongoing development:
 - `.htaccess`: Apache/LiteSpeed rewrite rules for pretty URLs plus baseline security headers.
 - `inc/helpers/helpers.php`: shared auth, CSRF, rate limiting, timezone, formatting, mail, logging, account delete, and utility functions.
 - `inc/views/app/*.php`: routed application views for the signed-in area.
+- `inc/views/app/dashboard.php`: dashboard KPIs, date-range modal filtering, Chart.js visualizations, totals table, and quick-link actions.
 - `inc/views/auth/*.php`: routed auth views rendered through shared auth layout wrappers.
 - `inc/views/errors/status.php`: shared routed error view driven by route metadata and front-controller/server error routes.
 - `inc/views/setup/*.php`: setup and install flow views.
