@@ -480,36 +480,21 @@ render_layout_header();
             </p>
 
             <?php if ($twoFactorEnabled): ?>
-                <form method="post" class="mb-3">
-                    <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-                    <input type="hidden" name="action" value="regenerate_two_factor_recovery_codes">
-
-                    <div class="mb-3">
-                        <label for="current_password_2fa_recovery" class="form-label">Current Password</label>
-                        <input type="password" id="current_password_2fa_recovery" name="current_password_2fa_manage" class="form-control" required autocomplete="current-password">
-                    </div>
-                    <div class="mb-3">
-                        <label for="two_factor_code_recovery" class="form-label">Authenticator or Recovery Code</label>
-                        <input type="text" id="two_factor_code_recovery" name="two_factor_code_manage" class="form-control" required autocomplete="one-time-code">
-                    </div>
-
-                    <button type="submit" class="btn btn-outline-primary">Regenerate Recovery Codes</button>
-                </form>
-
                 <form method="post">
                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-                    <input type="hidden" name="action" value="disable_two_factor">
-
                     <div class="mb-3">
-                        <label for="current_password_2fa_disable" class="form-label">Current Password</label>
-                        <input type="password" id="current_password_2fa_disable" name="current_password_2fa_manage" class="form-control" required autocomplete="current-password">
+                        <label for="current_password_2fa_manage" class="form-label">Current Password</label>
+                        <input type="password" id="current_password_2fa_manage" name="current_password_2fa_manage" class="form-control" required autocomplete="current-password">
                     </div>
                     <div class="mb-3">
-                        <label for="two_factor_code_disable" class="form-label">Authenticator or Recovery Code</label>
-                        <input type="text" id="two_factor_code_disable" name="two_factor_code_manage" class="form-control" required autocomplete="one-time-code">
+                        <label for="two_factor_code_manage" class="form-label">Authenticator or Recovery Code</label>
+                        <input type="text" id="two_factor_code_manage" name="two_factor_code_manage" class="form-control" required autocomplete="one-time-code">
                     </div>
 
-                    <button type="submit" class="btn btn-outline-danger">Disable Two-Factor</button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" name="action" value="regenerate_two_factor_recovery_codes" class="btn btn-outline-primary">Regenerate Recovery Codes</button>
+                        <button type="submit" name="action" value="disable_two_factor" class="btn btn-outline-danger">Disable Two-Factor</button>
+                    </div>
                 </form>
             <?php elseif ($pendingTwoFactorSecret !== ''): ?>
                 <div class="mb-3">
